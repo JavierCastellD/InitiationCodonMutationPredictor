@@ -7,9 +7,11 @@ import pandas as pd
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler, LabelEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import StratifiedKFold, train_test_split
-from sklearn import svm
-from sklearn import neighbors
+from sklearn.svm import SVC, LinearSVC
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.linear_model import SGDClassifier
 from sklearn import metrics
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import NearMiss
@@ -22,7 +24,7 @@ else:
 	mutaciones = pd.read_csv(fichero)
 
 	# Fichero de salida
-	out = open('salida_ML-NO_Reduccion_CostSensitive_OverSampling.csv','w')
+	out = open('salida_ML-NO_Reduccion_CostSensitive_UnderOver.csv','w')
 
 	# La cabecera del CSV
 	out.write('Clasificador,Accuracy,Balanced_Accuracy,PrecisionN,RecallN,PrecisionP,RecallP,F1,True_Negative,False_Positive,'
@@ -32,7 +34,9 @@ else:
 	salida = mutaciones.pop('CLASS')
 
 	# Separamos en conjuntos de train y test
-	X_train, X_test, y_train, y_test = train_test_split(mutaciones, salida, stratify=salida, train_size=0.8)
+	#X_train, X_test, y_train, y_test = train_test_split(mutaciones, salida, stratify=salida, train_size=0.8)
+	X_train = mutaciones
+	y_train = salida
 
 	###############################
 	### PREPROCESAMOS LOS DATOS ###	
@@ -64,12 +68,12 @@ else:
 	enc = LabelEncoder()
 
 	# Aplicamos las transformaciones al conjunto de entrenamiento
-	X_train_trans = ct.fit_transform(X_train_res)
-	y_train_trans = enc.fit_transform(y_train_res)
+	X_train_trans = ct.fit_transform(X_train)
+	y_train_trans = enc.fit_transform(y_train)
 
 	# Aplicamos las transformaciones al conjunto de test
-	X_test_trans = ct.transform(X_test)
-	y_test_trans = enc.transform(y_test)
+	#X_test_trans = ct.transform(X_test)
+	#y_test_trans = enc.transform(y_test)
 
 	# Hacemos oversampling y undersampling en el conjunto de entrenamiento
 	ros = RandomOverSampler(random_state=1234, sampling_strategy=0.1)
@@ -85,30 +89,35 @@ else:
 	nSplits = 30
 	sfk = StratifiedKFold(n_splits=nSplits)
 
-	names = ['SVC','LinearSVC','KNeighbors', 'RandomForest', 'AdaBoost', 'GradientBoosting']
-	clasificadores = [svm.SVC(random_state=1234, class_weight='balanced'),
-					  svm.LinearSVC(random_state=1234, class_weight='balanced', max_iter=2000),
-					  neighbors.KNeighborsClassifier(),
+	names = ['SVC','LinearSVC','KNeighbors', 'RandomForest', 'AdaBoost', 'GradientBoosting', 'GaussianNB', 'SGD']
+	clasificadores = [SVC(random_state=1234, class_weight='balanced'),
+					  LinearSVC(random_state=1234, class_weight='balanced', max_iter=2000),
+					  KNeighborsClassifier(),
 					  RandomForestClassifier(random_state=1234, class_weight='balanced'),
 					  AdaBoostClassifier(random_state=1234),
-					  GradientBoostingClassifier(random_state=1234)]
+					  GradientBoostingClassifier(random_state=1234),
+					  GaussianNB(),
+					  SGDClassifier(random_state=1234, shuffle=True)]
 
 	print('Realizando pruebas con clasificadores')
 	for name, clf in zip(names, clasificadores):
 		print('Clasificador actual: ' + name)
-		for train_index, test_index in sfk.split(X_train_trans, y_train_trans):
-			clf.fit(X_train_trans[train_index], y_train_trans[train_index])
-			pred = clf.predict(X_train_trans[test_index])
-			acc = metrics.accuracy_score(y_train_trans[test_index], pred)
-			bAcc = metrics.balanced_accuracy_score(y_train_trans[test_index], pred)
-			f1 = metrics.f1_score(y_train_trans[test_index],pred)
-			tn, fp, fn, tp = metrics.confusion_matrix(y_train_trans[test_index],pred).ravel()
+		for train_index, test_index in sfk.split(X_train_res, y_train_res):
+			clf.fit(X_train_res[train_index], y_train_res[train_index])
+			pred = clf.predict(X_train_res[test_index])
+			acc = metrics.accuracy_score(y_train_res[test_index], pred)
+			bAcc = metrics.balanced_accuracy_score(y_train_res[test_index], pred)
+			f1 = metrics.f1_score(y_train_res[test_index],pred)
+			tn, fp, fn, tp = metrics.confusion_matrix(y_train_res[test_index],pred).ravel()
 			# Debido al desbalanceo es necesario realizar lo siguiente:
 			if (tn+fn == 0):
-				precN = 0
+				precN = -1
 			else:
 				precN = tn/(tn+fn)
-			precP = tp/(tp+fp)
+			if (tp+fp == 0):
+				precP = -1
+			else:
+				precP = tp / (tp + fp)
 			recN = tn/(tn+fp)
 			recP = tp/(tp+fn)
 			line = name + ',' + str(acc) + ',' + str(bAcc) + ',' + str(precN) + ',' + str(recN) + ',' + str(precP) + ',' + str(recP) + ',' + str(f1) + ',' + str(tn) + ',' + str(fp) + ',' + str(fn) + ',' + str(tp) + '\n'
