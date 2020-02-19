@@ -18,18 +18,17 @@ else:
 
         acc = sum(resPorClave['Accuracy'])/len(resPorClave)
         bAcc = sum(resPorClave['Balanced_Accuracy'])/len(resPorClave)
-        precN = sum(resPorClave['PrecisionN'])/len(resPorClave)
-        recN = sum(resPorClave['RecallN'])/len(resPorClave)
-        precP = sum(resPorClave['PrecisionP'])/len(resPorClave)
-        recP = sum(resPorClave['RecallP'])/len(resPorClave)
+        recall = sum(resPorClave['Recall'])/len(resPorClave)
+        speci = sum(resPorClave['Specificity'])/len(resPorClave)
         f1 = sum(resPorClave['F1'])/len(resPorClave)
-        dict1 = {'Clasificador' : clave, 'Accuracy' : acc, 'Balanced_Accuracy' : bAcc, 'PrecisionN' : precN,
-                 'RecallN' : recN, 'PrecisionP' : precP, 'RecallP' : recP , 'F1' : f1}
+        roc_auc = sum(resPorClave['ROC_AUC']) / len(resPorClave)
+        dict1 = {'Clasificador' : clave, 'Accuracy' : acc, 'Balanced_Accuracy' : bAcc, 'Recall' : recall,
+                 'Specificity' : speci, 'ROC_AUC' : roc_auc, 'F1' : f1}
 
         row_list.append(dict1)
 
     # Convertimos la lista en un dataframe de Pandas
-    df = pd.DataFrame(row_list, columns=['Clasificador', 'Accuracy', 'Balanced_Accuracy', 'PrecisionN', 'RecallN', 'PrecisionP', 'RecallP', 'F1'])
+    df = pd.DataFrame(row_list, columns=['Clasificador', 'Accuracy', 'Balanced_Accuracy', 'Recall', 'Specificity', 'F1', 'ROC_AUC'])
 
     # Escribimos el DF como un fichero csv
     df.to_csv(fichero[:-4] + '_agregado.csv')
