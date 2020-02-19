@@ -16,19 +16,42 @@ from sklearn import metrics
 from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import NearMiss
 
+## FUNCIONES ##
+def aplicarTransformacionesTrain(X_train, y_train):
+	# Para aplicar la transformación a las columnas, creamos una instancia del OneHotEncoder y una instancia de
+	# ColumnTransformer pasándole el OneHotEncoder y las columnas a las que aplicaremos la transformación
+	varCategoricas = ['AMINOACID_CHANGE', 'CODON_CHANGE', 'READING_FRAME_STATUS', 'NO_STOP_CODON', 'PREMATURE_STOP_CODON','CDS_COORDS']
+	varNumericas = list(set(mutaciones.keys()).difference(varCategoricas))
+	trans = [('oneHotEncoder', OneHotEncoder(sparse=False, handle_unknown='ignore'), varCategoricas),
+			('MinMaxScaler', MinMaxScaler(), varNumericas)]
+	ct = ColumnTransformer(transformers=trans)
+
+	enc = LabelEncoder()
+	enc.fit(['BENIGN', 'DELETERIOUS']) # 0 == BENIGN y 1 == DELETERIOUS
+
+	# Aplicamos las transformaciones al conjunto de entrenamiento
+	X_train_trans = ct.fit_transform(X_train)
+	y_train_trans = enc.transform(y_train)
+
+	return X_train_trans, y_train_trans
+
+def aplicarOversampling(X_train, y_train):
+	ros = RandomOverSampler(random_state=1234, sampling_strategy=0.1)
+	X_train_over, y_train_over = ros.fit_resample(X_train, y_train)
+	return X_train_over, y_train_over
+
+def aplicarUndersampling(X_train, y_train):
+	nm = NearMiss(sampling_strategy=0.15)
+	X_train_res, y_train_res = nm.fit_resample(X_train, y_train)
+	return X_train_res, y_train_res
+
+## MAIN ##
 if len(sys.argv) != 2:
 	print("Uso: %s fichero.csv" % (sys.argv[0]))
 else:
 	# Lectura del fichero
 	fichero = sys.argv[1]
 	mutaciones = pd.read_csv(fichero)
-
-	# Fichero de salida
-	out = open('salida_ML-NO_Reduccion_CostSensitive_UnderOver.csv','w')
-
-	# La cabecera del CSV
-	out.write('Clasificador,Accuracy,Balanced_Accuracy,PrecisionN,RecallN,PrecisionP,RecallP,F1,True_Negative,False_Positive,'
-			  + 'False_Negative,True_Positive\n')
 
 	# Me quedo con la variable de salida
 	salida = mutaciones.pop('CLASS')
@@ -42,44 +65,18 @@ else:
 	### PREPROCESAMOS LOS DATOS ###	
 	###############################
 
-	### COSAS ÚTILES POR SI LAS NECESITO ###
-	## PARA OBTENER LOS NOMBRES DE LOS PREDICTORES DE ENTRADA Y SALIDA
-	# nombreSalida = set(['CLASS'])
-	# nombreEntradas = set(mutaciones.keys()).difference(nombreSalida)
-	## PARA OBTENER LOS VALORES DE LOS PREDICTORES DE ENTRADA Y SALIDA
-	# predsalida = mutaciones.pop('CLASS') --opcional: .values
-	# predEntrada = mutaciones[nombreEntradas] --opcional: .values
-	## LOS NOMBRES DE LAS VARIABLES CATEGÓRICAS-> Quizá 'CDS_COORDS' también la tendría que tratar como una variable categórica
-	# varCategoricas = ['AMINOACID_CHANGE', 'CODON_CHANGE', 'READING_FRAME_STATUS', 'NO_STOP_CODON', 'PREMATURE_STOP_CODON']
-	## PARA APLICAR LAS TRANSFORMACIONES, A ENTRENAMIENTO: ct.fit_transform() Y A TEST: ct.transform()
-
 	# Elegir predictores TODO
 
-	# Eliminar valores irrelevantes? -> TODO: Ver qué hace en este aspecto Fran
-	
-	# Para aplicar la transformación a las columnas, creamos una instancia del OneHotEncoder y una instancia de
-	# ColumnTransformer pasándole el OneHotEncoder y las columnas a las que aplicaremos la transformación
-	varCategoricas = ['AMINOACID_CHANGE', 'CODON_CHANGE', 'READING_FRAME_STATUS', 'NO_STOP_CODON', 'PREMATURE_STOP_CODON','CDS_COORDS']
-	varNumericas = list(set(mutaciones.keys()).difference(varCategoricas))
-	trans = [('oneHotEncoder', OneHotEncoder(sparse=False, handle_unknown='ignore'), varCategoricas),
-			('MinMaxScaler', MinMaxScaler(), varNumericas)]
-	ct = ColumnTransformer(transformers=trans)
-
-	enc = LabelEncoder()
-
 	# Aplicamos las transformaciones al conjunto de entrenamiento
-	X_train_trans = ct.fit_transform(X_train)
-	y_train_trans = enc.fit_transform(y_train)
+	X_train_trans, y_train_trans = aplicarTransformacionesTrain(X_train, y_train)
 
 	# Aplicamos las transformaciones al conjunto de test
 	#X_test_trans = ct.transform(X_test)
 	#y_test_trans = enc.transform(y_test)
 
 	# Hacemos oversampling y undersampling en el conjunto de entrenamiento
-	ros = RandomOverSampler(random_state=1234, sampling_strategy=0.1)
-	X_train_over, y_train_over = ros.fit_resample(X_train_trans, y_train_trans)
-	nm = NearMiss(sampling_strategy=0.15)
-	X_train_res, y_train_res = nm.fit_resample(X_train_over, y_train_over)
+	X_train_over, y_train_over = aplicarOversampling(X_train_trans, y_train_trans)
+	X_train_res, y_train_res = aplicarUndersampling(X_train_over, y_train_over)
 
 	################################
 	### APLICAR MACHINE LEARNING ###	
@@ -97,7 +94,15 @@ else:
 					  AdaBoostClassifier(random_state=1234),
 					  GradientBoostingClassifier(random_state=1234),
 					  GaussianNB(),
-					  SGDClassifier(random_state=1234, shuffle=True)]
+					  SGDClassifier(random_state=1234, shuffle=True, class_weight='balanced')]
+
+
+	# Fichero de salida
+	out = open('salida_ML-NO_Reduccion_CostSensitive_UnderOver.csv','w')
+
+	# La cabecera del CSV
+	out.write('Clasificador,Accuracy,Balanced_Accuracy,Recall,Specificity,F1,ROC_AUC,True_Negative,False_Positive,'
+			  + 'False_Negative,True_Positive\n')
 
 	print('Realizando pruebas con clasificadores')
 	for name, clf in zip(names, clasificadores):
@@ -108,20 +113,23 @@ else:
 			acc = metrics.accuracy_score(y_train_res[test_index], pred)
 			bAcc = metrics.balanced_accuracy_score(y_train_res[test_index], pred)
 			f1 = metrics.f1_score(y_train_res[test_index],pred)
+			roc_auc = metrics.roc_auc_score(y_train_res[test_index],pred)
 			tn, fp, fn, tp = metrics.confusion_matrix(y_train_res[test_index],pred).ravel()
-			# Debido al desbalanceo es necesario realizar lo siguiente:
-			if (tn+fn == 0):
-				precN = -1
-			else:
-				precN = tn/(tn+fn)
-			if (tp+fp == 0):
-				precP = -1
-			else:
-				precP = tp / (tp + fp)
-			recN = tn/(tn+fp)
-			recP = tp/(tp+fn)
-			line = name + ',' + str(acc) + ',' + str(bAcc) + ',' + str(precN) + ',' + str(recN) + ',' + str(precP) + ',' + str(recP) + ',' + str(f1) + ',' + str(tn) + ',' + str(fp) + ',' + str(fn) + ',' + str(tp) + '\n'
+			specif = tn/(tn+fp)
+			recall = metrics.recall_score(y_train_res[test_index],pred)
+			line = name + ',' + str(acc) + ',' + str(bAcc) + ',' + str(recall) + ',' + str(specif) + ',' + str(f1) + ',' + str(roc_auc) + ',' + str(tn) + ',' + str(fp) + ',' + str(fn) + ',' + str(tp) + '\n'
 			out.write(line)
 
 	# Cerramos el fichero de salida
 	out.close()
+
+	### COSAS ÚTILES POR SI LAS NECESITO ###
+	## PARA OBTENER LOS NOMBRES DE LOS PREDICTORES DE ENTRADA Y SALIDA
+	# nombreSalida = set(['CLASS'])
+	# nombreEntradas = set(mutaciones.keys()).difference(nombreSalida)
+	## PARA OBTENER LOS VALORES DE LOS PREDICTORES DE ENTRADA Y SALIDA
+	# predsalida = mutaciones.pop('CLASS') --opcional: .values
+	# predEntrada = mutaciones[nombreEntradas] --opcional: .values
+	## LOS NOMBRES DE LAS VARIABLES CATEGÓRICAS-> Quizá 'CDS_COORDS' también la tendría que tratar como una variable categórica
+	# varCategoricas = ['AMINOACID_CHANGE', 'CODON_CHANGE', 'READING_FRAME_STATUS', 'NO_STOP_CODON', 'PREMATURE_STOP_CODON']
+	## PARA APLICAR LAS TRANSFORMACIONES, A ENTRENAMIENTO: ct.fit_transform() Y A TEST: ct.transform()
