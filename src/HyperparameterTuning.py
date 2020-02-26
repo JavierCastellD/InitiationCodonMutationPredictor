@@ -6,13 +6,12 @@ from sklearn.preprocessing import OneHotEncoder, MinMaxScaler, LabelEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import StratifiedKFold
 from imblearn.under_sampling import NearMiss
+from imblearn.over_sampling import RandomOverSampler
 from sklearn import metrics
 
-def aplicarTransformacionesTrain(X_train, y_train):
+def aplicarTransformacionesTrain(X_train, y_train, varCategoricas, varNumericas):
 	# Para aplicar la transformación a las columnas, creamos una instancia del OneHotEncoder y una instancia de
 	# ColumnTransformer pasándole el OneHotEncoder y las columnas a las que aplicaremos la transformación
-	varCategoricas = ['AMINOACID_CHANGE', 'CODON_CHANGE', 'READING_FRAME_STATUS', 'NO_STOP_CODON', 'PREMATURE_STOP_CODON','CDS_COORDS']
-	varNumericas = list(set(mutaciones.keys()).difference(varCategoricas))
 	trans = [('oneHotEncoder', OneHotEncoder(sparse=False, handle_unknown='ignore'), varCategoricas),
 			('MinMaxScaler', MinMaxScaler(), varNumericas)]
 	ct = ColumnTransformer(transformers=trans)
@@ -31,6 +30,11 @@ def aplicarUndersampling(X_train, y_train):
 	X_train_res, y_train_res = nm.fit_resample(X_train, y_train)
 	return X_train_res, y_train_res
 
+def aplicarOversampling(X_train, y_train):
+	ros = RandomOverSampler(random_state=1234, sampling_strategy=0.1)
+	X_train_over, y_train_over = ros.fit_resample(X_train, y_train)
+	return X_train_over, y_train_over
+
 def specificity(y_true, y_predict):
 	tn, fp, fn, tp = metrics.confusion_matrix(y_true, y_predict).ravel()
 	specif = tn/(tn+fp)
@@ -38,21 +42,28 @@ def specificity(y_true, y_predict):
 
 ## MAIN
 mutaciones = pd.read_csv('mutaciones.csv')
+ficSalida = 'salida_HyperParameterTuning-5Num3Cat_CS_Under15'
 
 # Me quedo con la variable de salida
 y = mutaciones.pop('CLASS')
-X = mutaciones
 
-# Elegir predictores TODO
+# Elegir predictores
+varCategoricas = ['AMINOACID_CHANGE', 'READING_FRAME_STATUS', 'PREMATURE_STOP_CODON']
+varNumericas = ['CONSERVED_METS_IN_5_UTR', 'NMETS_5_UTR', 'STOP_CODON_POSITION', 'LOST_METS_IN_5_UTR', 'MUTATED_SEQUENCE_LENGTH']
+
+pred = varCategoricas + varNumericas
+
+X = mutaciones[pred]
 
 # Aplicamos las transformaciones al conjunto de entrenamiento
-X_trans, y_trans = aplicarTransformacionesTrain(X, y)
+X_trans, y_trans = aplicarTransformacionesTrain(X, y, varCategoricas, varNumericas)
 
-# Aplicamos undersampling
+# Aplicamos oversampling y undersampling
+#X_over, y_over = aplicarOversampling(X_trans, y_trans)
 X_res, y_res = aplicarUndersampling(X_trans, y_trans)
 
 # Utilizar Stratified K-Fold Cross Validation
-nSplits = 30
+nSplits = 10
 sfk = StratifiedKFold(n_splits=nSplits)
 
 # Métricas
@@ -63,6 +74,7 @@ scoring = {'ROC_AUC': 'roc_auc', 'Recall': 'recall', 'F1': 'f1', 'Specificity': 
 print('Iniciando LinearSVC')
 # Clasificador
 lsvc = LinearSVC(random_state=1234, class_weight='balanced')
+ficLSVC = ficSalida + '_LinearSVC'
 
 # Parámetros
 params_LSVC = {'C':[0.1,1]}
@@ -71,11 +83,11 @@ params_LSVC = {'C':[0.1,1]}
 clf = GridSearchCV(lsvc, param_grid=params_LSVC, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
 clf.fit(X_res, y_res)
 df = pd.DataFrame(clf.cv_results_)
-df.to_csv('salida_HyperParameterTuning-NO_Reduccion_LinearSVC.csv')
+df.to_csv(ficLSVC + '.csv')
 
 print('Creando agregado para LinearSVC')
 # Crear agregado
-out = open('salida_HyperParameterTuning-NO_Reduccion_LinearSVC_agregado.csv', 'w')
+out = open(ficLSVC + '_agregado.csv', 'w')
 
 # La cabecera del CSV
 cabecera = ''
@@ -106,6 +118,7 @@ out.close()
 print('Iniciando RandomForest')
 # Clasificador
 rf = RandomForestClassifier(random_state=1234, class_weight='balanced')
+ficRF = ficSalida + '_RandomForest'
 
 # Parámetros
 # quizá considerar min_samples_split, min_samples_leaf y max_features
@@ -116,11 +129,11 @@ params_RF = {'n_estimators':[1,2,4,8,16,32,64,100,128], 'max_depth':[1,2,4,8,16,
 clf = GridSearchCV(rf, param_grid=params_RF, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
 clf.fit(X_res, y_res)
 df = pd.DataFrame(clf.cv_results_)
-df.to_csv('salida_HyperParameterTuning-NO_Reduccion_RandomForest.csv')
+df.to_csv(ficRF + '.csv')
 
 print('Creando agregado para RandomForest')
 # Crear agregado
-out = open('salida_HyperParameterTuning-NO_Reduccion_RandomForest_agregado.csv', 'w')
+out = open(ficRF + '_agregado.csv', 'w')
 
 # La cabecera del CSV
 cabecera = ''
@@ -151,6 +164,7 @@ out.close()
 print('Iniciando Gradient Boosting')
 # Clasificador
 gb = GradientBoostingClassifier(random_state=1234)
+ficGB = ficSalida + '_GradientBoosting'
 
 # Parámetros
 # quizá considerar min_samples_split, min_samples_leaf y max_features
@@ -161,11 +175,11 @@ params_GB = {'learning_rate':[0.05, 0.1, 0.2], 'n_estimators':[1,2,4,8,16,32,64,
 clf = GridSearchCV(gb, param_grid=params_GB, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
 clf.fit(X_res, y_res)
 df = pd.DataFrame(clf.cv_results_)
-df.to_csv('salida_HyperParameterTuning-NO_Reduccion_GradientBoosting.csv')
+df.to_csv(ficGB + '.csv')
 
 print('Creando agregado para Gradient Boosting')
 # Crear agregado
-out = open('salida_HyperParameterTuning-NO_Reduccion_GradientBoosting_agregado.csv', 'w')
+out = open(ficGB + '_agregado.csv', 'w')
 
 # La cabecera del CSV
 cabecera = ''
