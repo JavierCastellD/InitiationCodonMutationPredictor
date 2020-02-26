@@ -58,14 +58,14 @@ else:
 
 	# Separamos en conjuntos de train y test
 	#X_train, X_test, y_train, y_test = train_test_split(mutaciones, salida, stratify=salida, train_size=0.8)
-	X_train = mutaciones
-	y_train = salida
 
 	###############################
 	### PREPROCESAMOS LOS DATOS ###	
 	###############################
 
-	# Elegir predictores TODO
+	# Elegir predictores
+	X_train = mutaciones
+	y_train = salida
 
 	# Aplicamos las transformaciones al conjunto de entrenamiento
 	X_train_trans, y_train_trans = aplicarTransformacionesTrain(X_train, y_train)
@@ -83,12 +83,12 @@ else:
 	################################
 
 	# Utilizar Stratified K-Fold Cross Validation
-	nSplits = 30
+	nSplits = 10
 	sfk = StratifiedKFold(n_splits=nSplits)
 
 	names = ['SVC','LinearSVC','KNeighbors', 'RandomForest', 'AdaBoost', 'GradientBoosting', 'GaussianNB', 'SGD']
 	clasificadores = [SVC(random_state=1234, class_weight='balanced'),
-					  LinearSVC(random_state=1234, class_weight='balanced', max_iter=2000),
+					  LinearSVC(random_state=1234, max_iter=2000, class_weight='balanced'),
 					  KNeighborsClassifier(),
 					  RandomForestClassifier(random_state=1234, class_weight='balanced'),
 					  AdaBoostClassifier(random_state=1234),
@@ -133,3 +133,4 @@ else:
 	## LOS NOMBRES DE LAS VARIABLES CATEGÓRICAS-> Quizá 'CDS_COORDS' también la tendría que tratar como una variable categórica
 	# varCategoricas = ['AMINOACID_CHANGE', 'CODON_CHANGE', 'READING_FRAME_STATUS', 'NO_STOP_CODON', 'PREMATURE_STOP_CODON']
 	## PARA APLICAR LAS TRANSFORMACIONES, A ENTRENAMIENTO: ct.fit_transform() Y A TEST: ct.transform()
+	# predictores = ['NMETS_5_UTR', 'CONSERVED_METS_IN_5_UTR', 'LOST_METS_IN_5_UTR', 'CONSERVED_METS_NO_STOP_IN_5_UTR', 'CDS_COORDS', 'AMINOACID_CHANGE', 'CODON_CHANGE', 'MET_POSITION', 'READING_FRAME_STATUS', 'NO_STOP_CODON','PREMATURE_STOP_CODON', 'STOP_CODON_POSITION', 'MUTATED_SEQUENCE_LENGTH']
