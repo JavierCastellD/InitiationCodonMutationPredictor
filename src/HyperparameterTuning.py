@@ -1,3 +1,4 @@
+import sys
 import pandas as pd
 from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
@@ -41,167 +42,172 @@ def specificity(y_true, y_predict):
 	return specif
 
 ## MAIN
-mutaciones = pd.read_csv('mutaciones.csv')
-ficSalida = 'salida_HyperParameterTuning-5Num3Cat_CS_Under15'
+if len(sys.argv) != 2:
+	print("Uso: %s fichero.csv" % (sys.argv[0]))
+else:
+	# Lectura del fichero
+	fichero = sys.argv[1]
+	mutaciones = pd.read_csv(fichero)
+	ficSalida = 'salida_HyperParameterTuning-4Num1Cat_CS_Under15'
 
-# Me quedo con la variable de salida
-y = mutaciones.pop('CLASS')
+	# Me quedo con la variable de salida
+	y = mutaciones.pop('CLASS')
 
-# Elegir predictores
-varCategoricas = ['AMINOACID_CHANGE', 'READING_FRAME_STATUS', 'PREMATURE_STOP_CODON']
-varNumericas = ['CONSERVED_METS_IN_5_UTR', 'NMETS_5_UTR', 'STOP_CODON_POSITION', 'LOST_METS_IN_5_UTR', 'MUTATED_SEQUENCE_LENGTH']
+	# Elegir predictores
+	varCategoricas = ['READING_FRAME_STATUS']
+	varNumericas = ['NMETS_5_UTR', 'STOP_CODON_POSITION', 'LOST_METS_IN_5_UTR', 'MUTATED_SEQUENCE_LENGTH']
 
-pred = varCategoricas + varNumericas
+	pred = varCategoricas + varNumericas
 
-X = mutaciones[pred]
+	X = mutaciones[pred]
 
-# Aplicamos las transformaciones al conjunto de entrenamiento
-X_trans, y_trans = aplicarTransformacionesTrain(X, y, varCategoricas, varNumericas)
+	# Aplicamos las transformaciones al conjunto de entrenamiento
+	X_trans, y_trans = aplicarTransformacionesTrain(X, y, varCategoricas, varNumericas)
 
-# Aplicamos oversampling y undersampling
-#X_over, y_over = aplicarOversampling(X_trans, y_trans)
-X_res, y_res = aplicarUndersampling(X_trans, y_trans)
+	# Aplicamos oversampling y undersampling
+	#X_over, y_over = aplicarOversampling(X_trans, y_trans)
+	X_res, y_res = aplicarUndersampling(X_trans, y_trans)
 
-# Utilizar Stratified K-Fold Cross Validation
-nSplits = 10
-sfk = StratifiedKFold(n_splits=nSplits)
+	# Utilizar Stratified K-Fold Cross Validation
+	nSplits = 10
+	sfk = StratifiedKFold(n_splits=nSplits)
 
-# Métricas
-specif = metrics.make_scorer(specificity,greater_is_better=True)
-scoring = {'ROC_AUC': 'roc_auc', 'Recall': 'recall', 'F1': 'f1', 'Specificity': specif}
+	# Métricas
+	specif = metrics.make_scorer(specificity,greater_is_better=True)
+	scoring = {'Accuracy': 'accuracy', 'ROC_AUC': 'roc_auc', 'Recall': 'recall', 'F1': 'f1', 'Specificity': specif}
 
-## PARA LINEARSVC ##
-print('Iniciando LinearSVC')
-# Clasificador
-lsvc = LinearSVC(random_state=1234, class_weight='balanced')
-ficLSVC = ficSalida + '_LinearSVC'
+	## PARA LINEARSVC ##
+	print('Iniciando LinearSVC')
+	# Clasificador
+	lsvc = LinearSVC(random_state=1234, class_weight='balanced')
+	ficLSVC = ficSalida + '_LinearSVC'
 
-# Parámetros
-params_LSVC = {'C':[0.1,1]}
+	# Parámetros
+	params_LSVC = {'C':[0.1,1]}
 
-# GridSearchCV
-clf = GridSearchCV(lsvc, param_grid=params_LSVC, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
-clf.fit(X_res, y_res)
-df = pd.DataFrame(clf.cv_results_)
-df.to_csv(ficLSVC + '.csv')
+	# GridSearchCV
+	clf = GridSearchCV(lsvc, param_grid=params_LSVC, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
+	clf.fit(X_res, y_res)
+	df = pd.DataFrame(clf.cv_results_)
+	df.to_csv(ficLSVC + '.csv')
 
-print('Creando agregado para LinearSVC')
-# Crear agregado
-out = open(ficLSVC + '_agregado.csv', 'w')
+	print('Creando agregado para LinearSVC')
+	# Crear agregado
+	out = open(ficLSVC + '_agregado.csv', 'w')
 
-# La cabecera del CSV
-cabecera = ''
-for key in df['params'][0].keys():
-	cabecera += key+','
-cabecera += 'ROC_AUC_Train,ROC_AUC_Test,Recall_Train,Recall_Test,F1_Train,F1_Test,Specificity_Train,Specificity_Test\n'
-out.write(cabecera)
+	# La cabecera del CSV
+	cabecera = ''
+	for key in df['params'][0].keys():
+		cabecera += key+','
+	cabecera += 'Accuracy_Train,Accuracy_Test,ROC_AUC_Train,ROC_AUC_Test,Recall_Train,Recall_Test,F1_Train,F1_Test,Specificity_Train,Specificity_Test\n'
+	out.write(cabecera)
 
-# Cada una de las líneas
-for lin in df.index:
-	linea = ''
-	for key in df['params'][lin].keys():
-		linea += str(df['params'][lin][key]) + ','
-	for score in ['ROC_AUC', 'Recall', 'F1', 'Specificity']:
-		cadenaTrain = 'mean_train_' + score
-		cadenaTest = 'mean_test_' + score
-		valorMedioTrain = df[cadenaTrain][lin]
-		valorMedioTest = df[cadenaTest][lin]
-		linea += str(valorMedioTrain)+','+str(valorMedioTest)
-		if (score != 'Specificity'):
-			linea +=','
-		else:
-			linea +='\n'
-	out.write(linea)
-out.close()
+	# Cada una de las líneas
+	for lin in df.index:
+		linea = ''
+		for key in df['params'][lin].keys():
+			linea += str(df['params'][lin][key]) + ','
+		for score in ['Accuracy', 'ROC_AUC', 'Recall', 'F1', 'Specificity']:
+			cadenaTrain = 'mean_train_' + score
+			cadenaTest = 'mean_test_' + score
+			valorMedioTrain = df[cadenaTrain][lin]
+			valorMedioTest = df[cadenaTest][lin]
+			linea += str(valorMedioTrain)+','+str(valorMedioTest)
+			if (score != 'Specificity'):
+				linea +=','
+			else:
+				linea +='\n'
+		out.write(linea)
+	out.close()
 
-## PARA RANDOMFOREST ##
-print('Iniciando RandomForest')
-# Clasificador
-rf = RandomForestClassifier(random_state=1234, class_weight='balanced')
-ficRF = ficSalida + '_RandomForest'
+	## PARA RANDOMFOREST ##
+	print('Iniciando RandomForest')
+	# Clasificador
+	rf = RandomForestClassifier(random_state=1234, class_weight='balanced')
+	ficRF = ficSalida + '_RandomForest'
 
-# Parámetros
-# quizá considerar min_samples_split, min_samples_leaf y max_features
-# Si aumentas valores de min afecta underfitting (se supone)
-params_RF = {'n_estimators':[1,2,4,8,16,32,64,100,128], 'max_depth':[1,2,4,8,16,32,64,None]}
+	# Parámetros
+	# quizá considerar min_samples_split, min_samples_leaf y max_features
+	# Si aumentas valores de min afecta underfitting (se supone)
+	params_RF = {'n_estimators':[1,2,4,8,16,32,64,100,128], 'max_depth':[1,2,4,8,16,32,64,None]}
 
-# GridSearchCV
-clf = GridSearchCV(rf, param_grid=params_RF, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
-clf.fit(X_res, y_res)
-df = pd.DataFrame(clf.cv_results_)
-df.to_csv(ficRF + '.csv')
+	# GridSearchCV
+	clf = GridSearchCV(rf, param_grid=params_RF, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
+	clf.fit(X_res, y_res)
+	df = pd.DataFrame(clf.cv_results_)
+	df.to_csv(ficRF + '.csv')
 
-print('Creando agregado para RandomForest')
-# Crear agregado
-out = open(ficRF + '_agregado.csv', 'w')
+	print('Creando agregado para RandomForest')
+	# Crear agregado
+	out = open(ficRF + '_agregado.csv', 'w')
 
-# La cabecera del CSV
-cabecera = ''
-for key in df['params'][0].keys():
-	cabecera += key+','
-cabecera += 'ROC_AUC_Train,ROC_AUC_Test,Recall_Train,Recall_Test,F1_Train,F1_Test,Specificity_Train,Specificity_Test\n'
-out.write(cabecera)
+	# La cabecera del CSV
+	cabecera = ''
+	for key in df['params'][0].keys():
+		cabecera += key+','
+	cabecera += 'Accuracy_Train,Accuracy_Test,ROC_AUC_Train,ROC_AUC_Test,Recall_Train,Recall_Test,F1_Train,F1_Test,Specificity_Train,Specificity_Test\n'
+	out.write(cabecera)
 
-# Cada una de las líneas
-for lin in df.index:
-	linea = ''
-	for key in df['params'][lin].keys():
-		linea += str(df['params'][lin][key]) + ','
-	for score in ['ROC_AUC', 'Recall', 'F1', 'Specificity']:
-		cadenaTrain = 'mean_train_' + score
-		cadenaTest = 'mean_test_' + score
-		valorMedioTrain = df[cadenaTrain][lin]
-		valorMedioTest = df[cadenaTest][lin]
-		linea += str(valorMedioTrain)+','+str(valorMedioTest)
-		if (score != 'Specificity'):
-			linea +=','
-		else:
-			linea +='\n'
-	out.write(linea)
-out.close()
+	# Cada una de las líneas
+	for lin in df.index:
+		linea = ''
+		for key in df['params'][lin].keys():
+			linea += str(df['params'][lin][key]) + ','
+		for score in ['Accuracy', 'ROC_AUC', 'Recall', 'F1', 'Specificity']:
+			cadenaTrain = 'mean_train_' + score
+			cadenaTest = 'mean_test_' + score
+			valorMedioTrain = df[cadenaTrain][lin]
+			valorMedioTest = df[cadenaTest][lin]
+			linea += str(valorMedioTrain)+','+str(valorMedioTest)
+			if (score != 'Specificity'):
+				linea +=','
+			else:
+				linea +='\n'
+		out.write(linea)
+	out.close()
 
-## PARA GRADIENT BOOSTING ##
-print('Iniciando Gradient Boosting')
-# Clasificador
-gb = GradientBoostingClassifier(random_state=1234)
-ficGB = ficSalida + '_GradientBoosting'
+	## PARA GRADIENT BOOSTING ##
+	print('Iniciando Gradient Boosting')
+	# Clasificador
+	gb = GradientBoostingClassifier(random_state=1234)
+	ficGB = ficSalida + '_GradientBoosting'
 
-# Parámetros
-# quizá considerar min_samples_split, min_samples_leaf y max_features
-# Si aumentas valores de min afecta underfitting (se supone)
-params_GB = {'learning_rate':[0.05, 0.1, 0.2], 'n_estimators':[1,2,4,8,16,32,64,100,128], 'max_depth':[1,2,3,4,5]}
+	# Parámetros
+	# quizá considerar min_samples_split, min_samples_leaf y max_features
+	# Si aumentas valores de min afecta underfitting (se supone)
+	params_GB = {'learning_rate':[0.05, 0.1, 0.2], 'n_estimators':[1,2,4,8,16,32,64,100,128], 'max_depth':[1,2,3,4,5]}
 
-# GridSearchCV
-clf = GridSearchCV(gb, param_grid=params_GB, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
-clf.fit(X_res, y_res)
-df = pd.DataFrame(clf.cv_results_)
-df.to_csv(ficGB + '.csv')
+	# GridSearchCV
+	clf = GridSearchCV(gb, param_grid=params_GB, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
+	clf.fit(X_res, y_res)
+	df = pd.DataFrame(clf.cv_results_)
+	df.to_csv(ficGB + '.csv')
 
-print('Creando agregado para Gradient Boosting')
-# Crear agregado
-out = open(ficGB + '_agregado.csv', 'w')
+	print('Creando agregado para Gradient Boosting')
+	# Crear agregado
+	out = open(ficGB + '_agregado.csv', 'w')
 
-# La cabecera del CSV
-cabecera = ''
-for key in df['params'][0].keys():
-	cabecera += key+','
-cabecera += 'ROC_AUC_Train,ROC_AUC_Test,Recall_Train,Recall_Test,F1_Train,F1_Test,Specificity_Train,Specificity_Test\n'
-out.write(cabecera)
+	# La cabecera del CSV
+	cabecera = ''
+	for key in df['params'][0].keys():
+		cabecera += key+','
+	cabecera += 'Accuracy_Train,Accuracy_Test,ROC_AUC_Train,ROC_AUC_Test,Recall_Train,Recall_Test,F1_Train,F1_Test,Specificity_Train,Specificity_Test\n'
+	out.write(cabecera)
 
-# Cada una de las líneas
-for lin in df.index:
-	linea = ''
-	for key in df['params'][lin].keys():
-		linea += str(df['params'][lin][key]) + ','
-	for score in ['ROC_AUC', 'Recall', 'F1', 'Specificity']:
-		cadenaTrain = 'mean_train_' + score
-		cadenaTest = 'mean_test_' + score
-		valorMedioTrain = df[cadenaTrain][lin]
-		valorMedioTest = df[cadenaTest][lin]
-		linea += str(valorMedioTrain)+','+str(valorMedioTest)
-		if (score != 'Specificity'):
-			linea +=','
-		else:
-			linea +='\n'
-	out.write(linea)
-out.close()
+	# Cada una de las líneas
+	for lin in df.index:
+		linea = ''
+		for key in df['params'][lin].keys():
+			linea += str(df['params'][lin][key]) + ','
+		for score in ['Accuracy', 'ROC_AUC', 'Recall', 'F1', 'Specificity']:
+			cadenaTrain = 'mean_train_' + score
+			cadenaTest = 'mean_test_' + score
+			valorMedioTrain = df[cadenaTrain][lin]
+			valorMedioTest = df[cadenaTest][lin]
+			linea += str(valorMedioTrain)+','+str(valorMedioTest)
+			if (score != 'Specificity'):
+				linea +=','
+			else:
+				linea +='\n'
+		out.write(linea)
+	out.close()
