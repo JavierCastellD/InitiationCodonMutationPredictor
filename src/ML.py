@@ -17,11 +17,9 @@ from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import NearMiss
 
 ## FUNCIONES ##
-def aplicarTransformacionesTrain(X_train, y_train):
+def aplicarTransformacionesTrain(X_train, y_train, varCategoricas, varNumericas):
 	# Para aplicar la transformación a las columnas, creamos una instancia del OneHotEncoder y una instancia de
 	# ColumnTransformer pasándole el OneHotEncoder y las columnas a las que aplicaremos la transformación
-	varCategoricas = ['AMINOACID_CHANGE', 'CODON_CHANGE', 'READING_FRAME_STATUS', 'NO_STOP_CODON', 'PREMATURE_STOP_CODON','CDS_COORDS']
-	varNumericas = list(set(mutaciones.keys()).difference(varCategoricas))
 	trans = [('oneHotEncoder', OneHotEncoder(sparse=False, handle_unknown='ignore'), varCategoricas),
 			('MinMaxScaler', MinMaxScaler(), varNumericas)]
 	ct = ColumnTransformer(transformers=trans)
@@ -64,11 +62,16 @@ else:
 	###############################
 
 	# Elegir predictores
-	X_train = mutaciones
+	varCategoricas = ['AMINOACID_CHANGE', 'CODON_CHANGE', 'READING_FRAME_STATUS', 'NO_STOP_CODON', 'PREMATURE_STOP_CODON']
+	varNumericas = ['NMETS_5_UTR', 'CONSERVED_METS_IN_5_UTR', 'LOST_METS_IN_5_UTR', 'CONSERVED_METS_NO_STOP_IN_5_UTR', 'CDS_COORDS', 'MET_POSITION', 'STOP_CODON_POSITION', 'MUTATED_SEQUENCE_LENGTH']
+
+	pred = varCategoricas + varNumericas
+
+	X_train = mutaciones[pred]
 	y_train = salida
 
 	# Aplicamos las transformaciones al conjunto de entrenamiento
-	X_train_trans, y_train_trans = aplicarTransformacionesTrain(X_train, y_train)
+	X_train_trans, y_train_trans = aplicarTransformacionesTrain(X_train, y_train, varCategoricas, varNumericas)
 
 	# Aplicamos las transformaciones al conjunto de test
 	#X_test_trans = ct.transform(X_test)
@@ -132,5 +135,6 @@ else:
 	# predEntrada = mutaciones[nombreEntradas] --opcional: .values
 	## LOS NOMBRES DE LAS VARIABLES CATEGÓRICAS-> Quizá 'CDS_COORDS' también la tendría que tratar como una variable categórica
 	# varCategoricas = ['AMINOACID_CHANGE', 'CODON_CHANGE', 'READING_FRAME_STATUS', 'NO_STOP_CODON', 'PREMATURE_STOP_CODON']
+	# 	varNumericas = ['NMETS_5_UTR', 'CONSERVED_METS_IN_5_UTR', 'LOST_METS_IN_5_UTR', 'CONSERVED_METS_NO_STOP_IN_5_UTR', 'CDS_COORDS', 'MET_POSITION', 'STOP_CODON_POSITION', 'MUTATED_SEQUENCE_LENGTH']
 	## PARA APLICAR LAS TRANSFORMACIONES, A ENTRENAMIENTO: ct.fit_transform() Y A TEST: ct.transform()
 	# predictores = ['NMETS_5_UTR', 'CONSERVED_METS_IN_5_UTR', 'LOST_METS_IN_5_UTR', 'CONSERVED_METS_NO_STOP_IN_5_UTR', 'CDS_COORDS', 'AMINOACID_CHANGE', 'CODON_CHANGE', 'MET_POSITION', 'READING_FRAME_STATUS', 'NO_STOP_CODON','PREMATURE_STOP_CODON', 'STOP_CODON_POSITION', 'MUTATED_SEQUENCE_LENGTH']
