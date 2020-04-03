@@ -6,9 +6,10 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import OneHotEncoder, MinMaxScaler, LabelEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import StratifiedKFold
-from imblearn.under_sampling import NearMiss
+from imblearn.under_sampling import NearMiss, RandomUnderSampler
 from imblearn.over_sampling import RandomOverSampler
 from sklearn import metrics
+from imblearn.pipeline import make_pipeline
 
 def aplicarTransformacionesTrain(X_train, y_train, varCategoricas, varNumericas):
 	# Para aplicar la transformación a las columnas, creamos una instancia del OneHotEncoder y una instancia de
@@ -26,16 +27,6 @@ def aplicarTransformacionesTrain(X_train, y_train, varCategoricas, varNumericas)
 
 	return X_train_trans, y_train_trans
 
-def aplicarUndersampling(X_train, y_train):
-	nm = NearMiss(sampling_strategy=0.15)
-	X_train_res, y_train_res = nm.fit_resample(X_train, y_train)
-	return X_train_res, y_train_res
-
-def aplicarOversampling(X_train, y_train):
-	ros = RandomOverSampler(random_state=1234, sampling_strategy=0.1)
-	X_train_over, y_train_over = ros.fit_resample(X_train, y_train)
-	return X_train_over, y_train_over
-
 def specificity(y_true, y_predict):
 	tn, fp, fn, tp = metrics.confusion_matrix(y_true, y_predict).ravel()
 	specif = tn/(tn+fp)
@@ -47,167 +38,181 @@ if len(sys.argv) != 2:
 else:
 	# Lectura del fichero
 	fichero = sys.argv[1]
-	mutaciones = pd.read_csv(fichero)
-	ficSalida = 'salida_HyperParameterTuning-4Num1Cat_CS_Under15'
+	mutaciones = pd.read_csv(fichero, sep='\t')
+	RANDOM_STATE = 1234
+	ficSalida = ''
 
 	# Me quedo con la variable de salida
 	y = mutaciones.pop('CLASS')
 
-	# Elegir predictores
-	varCategoricas = ['READING_FRAME_STATUS']
-	varNumericas = ['NMETS_5_UTR', 'STOP_CODON_POSITION', 'LOST_METS_IN_5_UTR', 'MUTATED_SEQUENCE_LENGTH']
-
-	pred = varCategoricas + varNumericas
-
-	X = mutaciones[pred]
-
-	# Aplicamos las transformaciones al conjunto de entrenamiento
-	X_trans, y_trans = aplicarTransformacionesTrain(X, y, varCategoricas, varNumericas)
-
-	# Aplicamos oversampling y undersampling
-	#X_over, y_over = aplicarOversampling(X_trans, y_trans)
-	X_res, y_res = aplicarUndersampling(X_trans, y_trans)
-
-	# Utilizar Stratified K-Fold Cross Validation
-	nSplits = 10
-	sfk = StratifiedKFold(n_splits=nSplits)
-
-	# Métricas
-	specif = metrics.make_scorer(specificity,greater_is_better=True)
-	scoring = {'Accuracy': 'accuracy', 'ROC_AUC': 'roc_auc', 'Recall': 'recall', 'F1': 'f1', 'Specificity': specif}
-
-	## PARA LINEARSVC ##
-	print('Iniciando LinearSVC')
-	# Clasificador
-	lsvc = LinearSVC(random_state=1234, class_weight='balanced')
-	ficLSVC = ficSalida + '_LinearSVC'
+	# Ficheros de salida
+	outLSVC = open(ficSalida + '_LSVC.csv', 'w')
+	outRF = open(ficSalida + '_RF.csv', 'w')
+	outGB = open(ficSalida + '_GB.csv', 'w')
 
 	# Parámetros
-	params_LSVC = {'C':[0.1,1]}
+	params_LSVC = {'linearsvc__C': [0.1, 1, 2, 5], 'linearsvc__dual': [True, False]}
+	params_RF = {'randomforestclassifier__n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 128],
+				 'randomforestclassifier__max_depth': [1, 2, 4, 8, 16, 32, 64, None]}
+	params_GB = {'gradientboostingclassifier__learning_rate': [0.05, 0.1, 0.2],
+				 'gradientboostingclassifier__n_estimators': [1, 2, 4, 8, 16, 32, 64, 100, 128],
+				 'gradientboostingclassifier__max_depth': [1, 2, 3, 4, 5]}
 
-	# GridSearchCV
-	clf = GridSearchCV(lsvc, param_grid=params_LSVC, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
-	clf.fit(X_res, y_res)
-	df = pd.DataFrame(clf.cv_results_)
-	df.to_csv(ficLSVC + '.csv')
+	# Elegimos las métricas
+	metricas = 'Accuracy_Train,Accuracy_Test,ROC_AUC_Train,ROC_AUC_Test,Recall_Train,Recall_Test,F1_Train,F1_Test,Specificity_Train,Specificity_Test,Precision_Train,Precision_Test\n'
+	valoresProbar = '%_Undersampling,Predictores,'
 
-	print('Creando agregado para LinearSVC')
-	# Crear agregado
-	out = open(ficLSVC + '_agregado.csv', 'w')
+	# Creamos las cabeceras
+	cabeceraLSVC = valoresProbar
+	for key in params_LSVC.keys():
+		cabeceraLSVC += key + ','
+	cabeceraLSVC += metricas
 
-	# La cabecera del CSV
-	cabecera = ''
-	for key in df['params'][0].keys():
-		cabecera += key+','
-	cabecera += 'Accuracy_Train,Accuracy_Test,ROC_AUC_Train,ROC_AUC_Test,Recall_Train,Recall_Test,F1_Train,F1_Test,Specificity_Train,Specificity_Test\n'
-	out.write(cabecera)
+	cabeceraRF = valoresProbar
+	for key in params_RF.keys():
+		cabeceraRF += key + ','
+	cabeceraRF += metricas
 
-	# Cada una de las líneas
-	for lin in df.index:
-		linea = ''
-		for key in df['params'][lin].keys():
-			linea += str(df['params'][lin][key]) + ','
-		for score in ['Accuracy', 'ROC_AUC', 'Recall', 'F1', 'Specificity']:
-			cadenaTrain = 'mean_train_' + score
-			cadenaTest = 'mean_test_' + score
-			valorMedioTrain = df[cadenaTrain][lin]
-			valorMedioTest = df[cadenaTest][lin]
-			linea += str(valorMedioTrain)+','+str(valorMedioTest)
-			if (score != 'Specificity'):
-				linea +=','
-			else:
-				linea +='\n'
-		out.write(linea)
-	out.close()
+	cabeceraGB = valoresProbar
+	for key in params_GB.keys():
+		cabeceraGB += key + ','
+	cabeceraGB += metricas
 
-	## PARA RANDOMFOREST ##
-	print('Iniciando RandomForest')
-	# Clasificador
-	rf = RandomForestClassifier(random_state=1234, class_weight='balanced')
-	ficRF = ficSalida + '_RandomForest'
+	# Escribimos las cabeceras
+	outLSVC.write(cabeceraLSVC)
+	outRF.write(cabeceraRF)
+	outGB.write(cabeceraGB)
 
-	# Parámetros
-	# quizá considerar min_samples_split, min_samples_leaf y max_features
-	# Si aumentas valores de min afecta underfitting (se supone)
-	params_RF = {'n_estimators':[1,2,4,8,16,32,64,100,128], 'max_depth':[1,2,4,8,16,32,64,None]}
+	for na, u in zip(['20','30','40','50'],[0.2,0.3,0.4,0.5]):
+		for val in [(6,3),(5,3),(5,2),(5,1),(4,1),(4,0)]:
+			print('Porcentaje UnderSampling = ' + na + '% Num = ' + str(val[0]) + ' Cat = ' + str(val[1]))
 
-	# GridSearchCV
-	clf = GridSearchCV(rf, param_grid=params_RF, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
-	clf.fit(X_res, y_res)
-	df = pd.DataFrame(clf.cv_results_)
-	df.to_csv(ficRF + '.csv')
+			# Elegir predictores
+			varCategoricas = ['READING_FRAME_STATUS', 'PREMATURE_STOP_CODON', 'AMINOACID_CHANGE']
+			varNumericas = ['LOST_METS_IN_5_UTR', 'NMETS_5_UTR', 'MUTATED_SEQUENCE_LENGTH', 'STOP_CODON_POSITION',
+							'CONSERVED_METS_IN_5_UTR', 'CONSERVED_METS_NO_STOP_IN_5_UTR']
 
-	print('Creando agregado para RandomForest')
-	# Crear agregado
-	out = open(ficRF + '_agregado.csv', 'w')
+			varCategoricas = varCategoricas[:val[1]]
+			varNumericas = varNumericas[:val[0]]
 
-	# La cabecera del CSV
-	cabecera = ''
-	for key in df['params'][0].keys():
-		cabecera += key+','
-	cabecera += 'Accuracy_Train,Accuracy_Test,ROC_AUC_Train,ROC_AUC_Test,Recall_Train,Recall_Test,F1_Train,F1_Test,Specificity_Train,Specificity_Test\n'
-	out.write(cabecera)
+			pred = varCategoricas + varNumericas
 
-	# Cada una de las líneas
-	for lin in df.index:
-		linea = ''
-		for key in df['params'][lin].keys():
-			linea += str(df['params'][lin][key]) + ','
-		for score in ['Accuracy', 'ROC_AUC', 'Recall', 'F1', 'Specificity']:
-			cadenaTrain = 'mean_train_' + score
-			cadenaTest = 'mean_test_' + score
-			valorMedioTrain = df[cadenaTrain][lin]
-			valorMedioTest = df[cadenaTest][lin]
-			linea += str(valorMedioTrain)+','+str(valorMedioTest)
-			if (score != 'Specificity'):
-				linea +=','
-			else:
-				linea +='\n'
-		out.write(linea)
-	out.close()
+			X = mutaciones[pred]
 
-	## PARA GRADIENT BOOSTING ##
-	print('Iniciando Gradient Boosting')
-	# Clasificador
-	gb = GradientBoostingClassifier(random_state=1234)
-	ficGB = ficSalida + '_GradientBoosting'
+			# Fichero salida
+			underValue = u
+			overValue = 0.08
 
-	# Parámetros
-	# quizá considerar min_samples_split, min_samples_leaf y max_features
-	# Si aumentas valores de min afecta underfitting (se supone)
-	params_GB = {'learning_rate':[0.05, 0.1, 0.2], 'n_estimators':[1,2,4,8,16,32,64,100,128], 'max_depth':[1,2,3,4,5]}
+			# Aplicamos las transformaciones al conjunto de entrenamiento
+			X_trans, y_trans = aplicarTransformacionesTrain(X, y, varCategoricas, varNumericas)
 
-	# GridSearchCV
-	clf = GridSearchCV(gb, param_grid=params_GB, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
-	clf.fit(X_res, y_res)
-	df = pd.DataFrame(clf.cv_results_)
-	df.to_csv(ficGB + '.csv')
+			# Aplicamos oversampling y undersampling
+			#X_over, y_over = aplicarOversampling(X_trans, y_trans)
+			#X_res, y_res = aplicarUndersampling(X_trans, y_trans)
+			nm = NearMiss(sampling_strategy=underValue)
+			ro = RandomOverSampler(sampling_strategy=overValue)
 
-	print('Creando agregado para Gradient Boosting')
-	# Crear agregado
-	out = open(ficGB + '_agregado.csv', 'w')
+			# Utilizar Stratified K-Fold Cross Validation
+			nSplits = 10
+			sfk = StratifiedKFold(n_splits=nSplits)
 
-	# La cabecera del CSV
-	cabecera = ''
-	for key in df['params'][0].keys():
-		cabecera += key+','
-	cabecera += 'Accuracy_Train,Accuracy_Test,ROC_AUC_Train,ROC_AUC_Test,Recall_Train,Recall_Test,F1_Train,F1_Test,Specificity_Train,Specificity_Test\n'
-	out.write(cabecera)
+			# Métricas
+			specif = metrics.make_scorer(specificity,greater_is_better=True)
+			scoring = {'Accuracy': 'accuracy', 'ROC_AUC': 'roc_auc', 'Recall': 'recall', 'F1': 'f1', 'Specificity': specif, 'Precision':'precision'}
 
-	# Cada una de las líneas
-	for lin in df.index:
-		linea = ''
-		for key in df['params'][lin].keys():
-			linea += str(df['params'][lin][key]) + ','
-		for score in ['Accuracy', 'ROC_AUC', 'Recall', 'F1', 'Specificity']:
-			cadenaTrain = 'mean_train_' + score
-			cadenaTest = 'mean_test_' + score
-			valorMedioTrain = df[cadenaTrain][lin]
-			valorMedioTest = df[cadenaTest][lin]
-			linea += str(valorMedioTrain)+','+str(valorMedioTest)
-			if (score != 'Specificity'):
-				linea +=','
-			else:
-				linea +='\n'
-		out.write(linea)
-	out.close()
+			## PARA LINEARSVC ##
+			print('Iniciando LinearSVC')
+			# Clasificador
+			lsvc = LinearSVC(random_state=RANDOM_STATE, class_weight='balanced', max_iter=10000)
+	
+			# Pipeline para solucionar problema UnderSampling
+			pipeLSVC = make_pipeline(nm, lsvc)
+	
+			# GridSearchCV
+			clf = GridSearchCV(pipeLSVC, param_grid=params_LSVC, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
+			clf.fit(X_trans, y_trans)
+			df = pd.DataFrame(clf.cv_results_)
+	
+			print('Creando agregado para LinearSVC')
+			# Cada una de las líneas
+			for lin in df.index:
+				linea = str(u) + ',' + str(val[0] + val[1]) + ','
+				for key in df['params'][lin].keys():
+					linea += str(df['params'][lin][key]) + ','
+				for score in scoring.keys():
+					cadenaTrain = 'mean_train_' + score
+					cadenaTest = 'mean_test_' + score
+					valorMedioTrain = df[cadenaTrain][lin]
+					valorMedioTest = df[cadenaTest][lin]
+					linea += str(valorMedioTrain) + ',' + str(valorMedioTest)
+					if (score != 'Precision'):
+						linea += ','
+					else:
+						linea += '\n'
+				outLSVC.write(linea)
+
+			## PARA RANDOMFOREST ##
+			print('Iniciando RandomForest')
+			# Clasificador
+			rf = RandomForestClassifier(random_state=RANDOM_STATE)
+
+			# Pipeline para solucionar problema UnderSampling
+			pipeRF = make_pipeline(nm, rf)
+
+			# GridSearchCV
+			clf = GridSearchCV(pipeRF, param_grid=params_RF, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
+			clf.fit(X_trans, y_trans)
+			df = pd.DataFrame(clf.cv_results_)
+
+			print('Creando agregado para RandomForest')
+			# Cada una de las líneas
+			for lin in df.index:
+				linea = str(u)+','+str(val[0]+val[1])+','
+				for key in df['params'][lin].keys():
+					linea += str(df['params'][lin][key]) + ','
+				for score in scoring.keys():
+					cadenaTrain = 'mean_train_' + score
+					cadenaTest = 'mean_test_' + score
+					valorMedioTrain = df[cadenaTrain][lin]
+					valorMedioTest = df[cadenaTest][lin]
+					linea += str(valorMedioTrain)+','+str(valorMedioTest)
+					if (score != 'Precision'):
+						linea +=','
+					else:
+						linea +='\n'
+				outRF.write(linea)
+
+			## PARA GRADIENT BOOSTING ##
+			print('Iniciando Gradient Boosting')
+			# Clasificador
+			gb = GradientBoostingClassifier(random_state=RANDOM_STATE)
+
+			# Pipeline para solucionar problema UnderSampling
+			pipeGB = make_pipeline(nm, gb)
+		
+			# GridSearchCV
+			clf = GridSearchCV(pipeGB, param_grid=params_GB, scoring=scoring, cv=nSplits, refit='Specificity', return_train_score=True)
+			clf.fit(X_trans, y_trans)
+			df = pd.DataFrame(clf.cv_results_)
+		
+			print('Creando agregado para Gradient Boosting')
+			# Cada una de las líneas
+			for lin in df.index:
+				linea = str(u) + ',' + str(val[0] + val[1]) + ','
+				for key in df['params'][lin].keys():
+					linea += str(df['params'][lin][key]) + ','
+				for score in scoring.keys():
+					cadenaTrain = 'mean_train_' + score
+					cadenaTest = 'mean_test_' + score
+					valorMedioTrain = df[cadenaTrain][lin]
+					valorMedioTest = df[cadenaTest][lin]
+					linea += str(valorMedioTrain) + ',' + str(valorMedioTest)
+					if (score != 'Precision'):
+						linea += ','
+					else:
+						linea += '\n'
+				outGB.write(linea)
+
+	outLSVC.close()
+	outRF.close()
+	outGB.close()

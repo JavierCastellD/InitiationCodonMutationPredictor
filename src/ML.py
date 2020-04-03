@@ -34,12 +34,12 @@ def aplicarTransformacionesTrain(X_train, y_train, varCategoricas, varNumericas)
 	return X_train_trans, y_train_trans
 
 def aplicarOversampling(X_train, y_train):
-	ros = RandomOverSampler(random_state=1234, sampling_strategy=0.1)
+	ros = RandomOverSampler(random_state=1234, sampling_strategy=0.15)
 	X_train_over, y_train_over = ros.fit_resample(X_train, y_train)
 	return X_train_over, y_train_over
 
 def aplicarUndersampling(X_train, y_train):
-	nm = NearMiss(sampling_strategy=0.15)
+	nm = NearMiss(sampling_strategy=0.1)
 	X_train_res, y_train_res = nm.fit_resample(X_train, y_train)
 	return X_train_res, y_train_res
 
@@ -49,7 +49,8 @@ if len(sys.argv) != 2:
 else:
 	# Lectura del fichero
 	fichero = sys.argv[1]
-	mutaciones = pd.read_csv(fichero)
+	mutaciones = pd.read_csv(fichero, sep='\t')
+	RANDOM_STATE = 1234
 
 	# Me quedo con la variable de salida
 	salida = mutaciones.pop('CLASS')
@@ -58,12 +59,12 @@ else:
 	#X_train, X_test, y_train, y_test = train_test_split(mutaciones, salida, stratify=salida, train_size=0.8)
 
 	###############################
-	### PREPROCESAMOS LOS DATOS ###	
+	### PREPROCESAMOS LOS DATOS ###
 	###############################
 
 	# Elegir predictores
-	varCategoricas = ['AMINOACID_CHANGE', 'CODON_CHANGE', 'READING_FRAME_STATUS', 'NO_STOP_CODON', 'PREMATURE_STOP_CODON']
-	varNumericas = ['NMETS_5_UTR', 'CONSERVED_METS_IN_5_UTR', 'LOST_METS_IN_5_UTR', 'CONSERVED_METS_NO_STOP_IN_5_UTR', 'CDS_COORDS', 'MET_POSITION', 'STOP_CODON_POSITION', 'MUTATED_SEQUENCE_LENGTH']
+	varCategoricas = ['READING_FRAME_STATUS', 'PREMATURE_STOP_CODON']
+	varNumericas = ['NMETS_5_UTR', 'LOST_METS_IN_5_UTR', 'MUTATED_SEQUENCE_LENGTH']
 
 	pred = varCategoricas + varNumericas
 
@@ -78,8 +79,10 @@ else:
 	#y_test_trans = enc.transform(y_test)
 
 	# Hacemos oversampling y undersampling en el conjunto de entrenamiento
-	X_train_over, y_train_over = aplicarOversampling(X_train_trans, y_train_trans)
-	X_train_res, y_train_res = aplicarUndersampling(X_train_over, y_train_over)
+	#X_train_over, y_train_over = aplicarUndersampling(X_train_trans, y_train_trans)
+	#X_train_res, y_train_res = aplicarOversampling(X_train_over, y_train_over)
+	nm = NearMiss(sampling_strategy=0.15)
+	os = RandomOverSampler(sampling_strategy=0.1)
 
 	################################
 	### APLICAR MACHINE LEARNING ###	
@@ -89,19 +92,20 @@ else:
 	nSplits = 10
 	sfk = StratifiedKFold(n_splits=nSplits)
 
-	names = ['SVC','LinearSVC','KNeighbors', 'RandomForest', 'AdaBoost', 'GradientBoosting', 'GaussianNB', 'SGD']
-	clasificadores = [SVC(random_state=1234, class_weight='balanced'),
-					  LinearSVC(random_state=1234, max_iter=2000, class_weight='balanced'),
+	names = ['SVC', 'SVC_Linear', 'LinearSVC','KNeighbors', 'RandomForest', 'AdaBoost', 'GradientBoosting', 'GaussianNB', 'SGD']
+	clasificadores = [SVC(random_state=RANDOM_STATE, class_weight='balanced'),
+					  SVC(random_state=RANDOM_STATE, class_weight='balanced', kernel='linear'),
+					  LinearSVC(random_state=RANDOM_STATE, max_iter=20000, class_weight='balanced'),
 					  KNeighborsClassifier(),
-					  RandomForestClassifier(random_state=1234, class_weight='balanced'),
-					  AdaBoostClassifier(random_state=1234),
-					  GradientBoostingClassifier(random_state=1234),
+					  RandomForestClassifier(random_state=RANDOM_STATE, class_weight='balanced'),
+					  AdaBoostClassifier(random_state=RANDOM_STATE),
+					  GradientBoostingClassifier(random_state=RANDOM_STATE),
 					  GaussianNB(),
-					  SGDClassifier(random_state=1234, shuffle=True, class_weight='balanced')]
+					  SGDClassifier(random_state=RANDOM_STATE, shuffle=True, class_weight='balanced')]
 
 
 	# Fichero de salida
-	out = open('salida_ML-NO_Reduccion_CostSensitive_UnderOver.csv','w')
+	out = open('salida_ML-Red5_CS.csv','w')
 
 	# La cabecera del CSV
 	out.write('Clasificador,Accuracy,Balanced_Accuracy,Recall,Specificity,F1,ROC_AUC,True_Negative,False_Positive,'
@@ -110,16 +114,21 @@ else:
 	print('Realizando pruebas con clasificadores')
 	for name, clf in zip(names, clasificadores):
 		print('Clasificador actual: ' + name)
-		for train_index, test_index in sfk.split(X_train_res, y_train_res):
-			clf.fit(X_train_res[train_index], y_train_res[train_index])
-			pred = clf.predict(X_train_res[test_index])
-			acc = metrics.accuracy_score(y_train_res[test_index], pred)
-			bAcc = metrics.balanced_accuracy_score(y_train_res[test_index], pred)
-			f1 = metrics.f1_score(y_train_res[test_index],pred)
-			roc_auc = metrics.roc_auc_score(y_train_res[test_index],pred)
-			tn, fp, fn, tp = metrics.confusion_matrix(y_train_res[test_index],pred).ravel()
+		for train_index, test_index in sfk.split(X_train_trans, y_train_trans):
+			#X_train_res, y_train_res = os.fit_resample(X_train_trans[train_index], y_train_trans[train_index])
+			#X_train_res, y_train_res = nm.fit_resample(X_train_res, y_train_res)
+			X_train_res, y_train_res = X_train_trans[train_index], y_train_trans[train_index]
+			X_test, y_test = X_train_trans[test_index], y_train_trans[test_index]
+
+			clf.fit(X_train_res, y_train_res)
+			pred = clf.predict(X_test)
+			acc = metrics.accuracy_score(y_test, pred)
+			bAcc = metrics.balanced_accuracy_score(y_test, pred)
+			f1 = metrics.f1_score(y_test,pred)
+			roc_auc = metrics.roc_auc_score(y_test,pred)
+			tn, fp, fn, tp = metrics.confusion_matrix(y_test,pred).ravel()
 			specif = tn/(tn+fp)
-			recall = metrics.recall_score(y_train_res[test_index],pred)
+			recall = metrics.recall_score(y_test,pred)
 			line = name + ',' + str(acc) + ',' + str(bAcc) + ',' + str(recall) + ',' + str(specif) + ',' + str(f1) + ',' + str(roc_auc) + ',' + str(tn) + ',' + str(fp) + ',' + str(fn) + ',' + str(tp) + '\n'
 			out.write(line)
 
