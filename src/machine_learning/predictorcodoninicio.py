@@ -153,7 +153,10 @@ def updateMetrics(y_true, y_pred, dic):
     return {'Accuracy': acc, 'Specifity': spec, 'Recall': rec, 'ROC_AUC': auc, 'Precision': prec, 'Kappa': kappa}
 
 def printLinea(name, us, metricas, rep):
-    salida = str(name) + ',' + str(us)
+    if us is None:
+        salida = str(name)
+    else:
+        salida = str(name) + ',' + str(us)
 
     for m in metricas.keys():
         salida += ',' + str(round(metricas[m]/rep,3))
