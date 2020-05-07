@@ -4,64 +4,158 @@
         <title>Predictor Mutaciones Codón Inicio</title>
         <meta charset="utf-8">
         <script src="./controller.js"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
     </head>
 
     <body>
-        <form method="POST">
-            <h1>Introduzca los datos a evaluar:</h1>
-            <p>
-                <label for="prematureStopCodon">
-                    <span>
-                        Premature Stop Codon
-                    </span>
-                </label>
-                <select id="prematureStopCodon">
-                    <option value="YES">YES</option>
-                    <option value="NO">NO</option>
-                </select>
-            </p>
-            <p>
-                <label for="readingFrameStatus">
-                    <span>
-                        Reading Frame Status
-                    </span>
-                </label>
-                <select id="readingFrameStatus">
-                    <option value="Lost">Lost</option>
-                    <option value="Maintained">Maintained</option>
-                </select>
-            </p>
-            <p>
-                <label for="lostMetsInUTR">
-                    <span>
-                        Lost Mets in UTR
-                    </span>
-                </label>
-                <input type="number" id="lostMetsInUTR" min="0">
-            </p>
-            <p>
-                <label for="mutatedSequenceLength">
-                    <span>
-                        Mutated Sequence Length
-                    </span>
-                </label>
-                <input type="number" id="mutatedSequenceLength" min="0">
-            </p>
-            <p>
-                <button type="button" onclick="realizarPrediccion()">Evaluar</button>
-            </p>
-        </form>
-        <p>
-            <h3>
-                 <span id="resultado">
-                 </span>
-            </h3> 
-         </p>
-         <p>
-             <h3>
-                 <span id="error" style="color: red;">
-                </span>
-             </h3>
-         </p>
+        <div class="container">
+            <ul class="nav nav-tabs">
+                <li class="active"><a data-toggle="tab" href="#formCaracteristicas">Características</a></li>
+                <li><a data-toggle="tab" href="#formSecuencias">Secuencias</a></li>
+                <li><a data-toggle="tab" href="#formEnsembl">Transcrito de ensembl</a></li>
+            </ul>
+
+            <div class="tab-content">
+                <div id="formCaracteristicas" class="tab-pane fade in active">
+                    <form method="POST">
+                        <h1>Introduzca los datos a evaluar:</h1>
+                        <p>
+                            <label for="prematureStopCodon">
+                                <span>
+                                    Premature Stop Codon
+                                </span>
+                            </label>
+                            <select id="prematureStopCodon">
+                                <option value="YES">YES</option>
+                                <option value="NO">NO</option>
+                            </select>
+                        </p>
+                        <p>
+                            <label for="readingFrameStatus">
+                                <span>
+                                    Reading Frame Status
+                                </span>
+                            </label>
+                            <select id="readingFrameStatus">
+                                <option value="Lost">Lost</option>
+                                <option value="Maintained">Maintained</option>
+                            </select>
+                        </p>
+                        <p>
+                            <label for="lostMetsInUTR">
+                                <span>
+                                    Lost Mets in UTR
+                                </span>
+                            </label>
+                            <input type="number" id="lostMetsInUTR" min="0">
+                        </p>
+                        <p>
+                            <label for="mutatedSequenceLength">
+                                <span>
+                                    Mutated Sequence Length
+                                </span>
+                            </label>
+                            <input type="number" id="mutatedSequenceLength" min="0">
+                        </p>
+                        <p>
+                            <button type="button" onclick="realizarPrediccionPorCaracteristicas()">Evaluar</button>
+                        </p>
+                    </form>
+                    <p>
+                        <h3>
+                             <span id="resultadoPorCaracteristicas">
+                             </span>
+                        </h3>
+                     </p>
+                     <p>
+                         <h3>
+                             <span id="errorPorCaracteristicas" style="color: red;">
+                            </span>
+                         </h3>
+                     </p>
+                </div>
+                <div id="formSecuencias" class="tab-pane fade">
+                    <form method="POST">
+                        <h1>Introduzca los datos a evaluar</h1>
+                        <p>
+                            <label for="cdna" title="Secuencia completa del transcrito original, incluyendo 5' y 3'">
+                                <span>CDNA sequence</span>
+                            </label>
+                            <br>
+                            <textarea id="cdna" cols="50" rows="20"></textarea>
+
+                        </p>
+                        <p>
+                            <label for="cds" title="Secuencia de la región codificante del transcrito original">
+                                <span>CDS sequence</span>
+                            </label>
+                            <br>
+                            <textarea id="cds" cols="50" rows="20"></textarea>
+
+                        </p>
+                        <p>
+                            <label for="mutatedCdna" title="Secuencia completa del transcrito mutado, incluyendo 5' y 3'">
+                                <span>Mutated CDNA sequence</span>
+                            </label>
+                            <br>
+                            <textarea id="mutatedCdna" cols="50" rows="20"></textarea>
+
+                        </p>
+                        <p>
+                            <button type="button" onclick="realizarPrediccionPorSecuencias()">Evaluar</button>
+                        </p>
+                        <p>
+                            <h3>
+                                 <span id="resultadoPorSecuencias">
+                                 </span>
+                            </h3>
+                        </p>
+                         <p>
+                             <h3>
+                                 <span id="errorPorSecuencias" style="color: red;">
+                                </span>
+                             </h3>
+                         </p>
+                    </form>
+                </div>
+                <div id="formEnsembl" class="tab-pane fade">
+                    <form method="POST">
+                        <h1>Introduzca los datos a evaluar</h1>
+                        <p>
+                            <label for="transcriptID" title="Identificador de un transcrito de ensembl">
+                                <span>ensembl ID</span>
+                            </label>
+                            <input type="text" id="transcriptID">
+
+                        </p>
+                        <p>
+                            <label for="cambioCodon" title="Secuencia de la región codificante del transcrito original">
+                                <span>Cambio codón: ATG /</span>
+                            </label>
+                            <input type="text" id="cambioCodon" maxlength="3" size="3">
+
+                        </p>
+                        <p>
+                            <button type="button" onclick="realizarPrediccionPorEnsemblID()">Evaluar</button>
+                        </p>
+                        <p>
+                            <h3>
+                                 <span id="resultadoPorEnsemblID">
+                                 </span>
+                            </h3>
+                        </p>
+                         <p>
+                             <h3>
+                                 <span id="errorPorEnsemblID" style="color: red;">
+                                </span>
+                             </h3>
+                         </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+
     </body>
 </html>
