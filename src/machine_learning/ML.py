@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier, BaggingClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier, BaggingClassifier, VotingClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import SGDClassifier
 from imblearn.under_sampling import RandomUnderSampler
@@ -164,7 +164,7 @@ else:
     #names = ['SVC', 'SVC_Linear', 'LinearSVC', 'KNeighbors', 'RandomForest', 'AdaBoost', 'GradientBoosting',
     #         'GaussianNB', 'SGD','DecisionTree','ExtraTrees']
     #names = ['DecisionTree', 'ExtraTrees']
-    names = ['BaggingClassifierDT', 'BaggingClassifierLSVC']
+    #names = ['BaggingClassifierDT', 'BaggingClassifierLSVC']
     #names = ['SVC', 'SVC_Linear', 'LinearSVC', 'RandomForest', 'SGD']
     #clasificadores = [SVC(random_state=RANDOM_STATE, class_weight='balanced'),
     #                  SVC(random_state=RANDOM_STATE, kernel='linear', class_weight='balanced'),
@@ -179,15 +179,42 @@ else:
     #                  ExtraTreesClassifier(random_state=RANDOM_STATE, class_weight='balanced')
     #                  ]
 
-    clasificadores = [BaggingClassifier(base_estimator=
-                                        DecisionTreeClassifier(random_state=RANDOM_STATE),
-                                        random_state=RANDOM_STATE),
-                      BaggingClassifier(base_estimator=
-                                        LinearSVC(random_state=RANDOM_STATE, max_iter=200000),
-                                        random_state=RANDOM_STATE)]
+    #clasificadores = [BaggingClassifier(base_estimator=
+    #                                    DecisionTreeClassifier(random_state=RANDOM_STATE),
+    #                                    random_state=RANDOM_STATE),
+    #                  BaggingClassifier(base_estimator=
+    #                                    LinearSVC(random_state=RANDOM_STATE, max_iter=200000),
+    #                                    random_state=RANDOM_STATE)]
+
+    dt1 = DecisionTreeClassifier(max_depth=16, min_samples_leaf=1, min_samples_split=10, criterion='entropy',
+                                  random_state=RANDOM_STATE)
+    dt2 = DecisionTreeClassifier(max_depth=None, min_samples_leaf=1, min_samples_split=10, criterion='gini',
+                                  random_state=RANDOM_STATE)
+    rfc1 = RandomForestClassifier(bootstrap=False, max_depth=32, min_samples_leaf=2, min_samples_split=2,
+                                  class_weight='balanced', n_estimators=50, random_state=RANDOM_STATE)
+    rfc2 = RandomForestClassifier(bootstrap=False, max_depth=16, min_samples_leaf=2, min_samples_split=10,
+                                  class_weight='balanced', n_estimators=20, random_state=RANDOM_STATE)
+    et8 = ExtraTreesClassifier(bootstrap=False, max_depth=16, min_samples_leaf=1, min_samples_split=2,
+                               n_estimators=200, class_weight='balanced', random_state=RANDOM_STATE)
+
+    names = ['DT5.1_DT5.2_RFC1.1_RFC1.2_ET8','DT5.1_DT5.2_RFC1.1','DT5.1_DT5.2_RFC1.2','DT5.1_DT5.2_ET8',
+             'DT5.1_RFC1.1_RFC1.2','DT5.1_RFC1.1_ET8','DT5.1_RFC1.2_ET8','DT5.2_RFC1.1_RFC1.2',
+             'DT5.2_RFC1.1_ET8','DT5.2_RFC1.2_ET8','RFC1.1_RFC1.2_ET8']
+    clasificadores = [VotingClassifier(estimators=[('DT5.1', dt1),('DT5.2', dt2),('RFC1.1', rfc1),('RFC1.2', rfc2),('ET8', et8)]),
+                      VotingClassifier(estimators=[('DT5.1', dt1),('DT5.2', dt2),('RFC1.1', rfc1)]),
+                      VotingClassifier(estimators=[('DT5.1', dt1),('DT5.2', dt2),('RFC1.2', rfc2)]),
+                      VotingClassifier(estimators=[('DT5.1', dt1),('DT5.2', dt2),('ET8', et8)]),
+                      VotingClassifier(estimators=[('DT5.1', dt1),('RFC1.1', rfc1),('RFC1.2', rfc2)]),
+                      VotingClassifier(estimators=[('DT5.1', dt1),('RFC1.1', rfc1),('ET8', et8)]),
+                      VotingClassifier(estimators=[('DT5.1', dt1),('RFC1.2', rfc2),('ET8', et8)]),
+                      VotingClassifier(estimators=[('DT5.2', dt2),('RFC1.1', rfc1),('RFC1.2', rfc2)]),
+                      VotingClassifier(estimators=[('DT5.2', dt2),('RFC1.1', rfc1),('ET8', et8)]),
+                      VotingClassifier(estimators=[('DT5.2', dt2),('RFC1.2', rfc2),('ET8', et8)]),
+                      VotingClassifier(estimators=[('RFC1.1', rfc1),('RFC1.2', rfc2),('ET8', et8)]),
+                      ]
 
     # Creamos fichero salida
-    out = open('salida_ML-BaggingClassifier-Red'+str(n)+'_US.csv', 'w')
+    out = open('salida_ML-VotingClassifier-RedRaro'+str(n)+'_US.csv', 'w')
 
     # Cabecera fichero
     cabecera = 'Clasificador,UnderSampling,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa\n'
@@ -224,7 +251,7 @@ else:
 
             # Hay que hacer FS aquí con el conjunto de entrenamiento
             print('Realizando Feature Selection')
-            features = featureSelection(X_train_res, y_train_res, n)[:n]
+            features = featureSelection(X_train_res, y_train_res, n)#[:n]
             print(features)
             X_train_sel = X_train_res[features]
             X_test_sel = X_test[features]
