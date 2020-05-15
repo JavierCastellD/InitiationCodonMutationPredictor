@@ -1,0 +1,15 @@
+Clasificador,UnderSampling,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa
+BaggingClassifierDT,0.25,0.887,0.456,0.892,0.674,0.993,0.063
+BaggingClassifierDT,0.1,0.962,0.367,0.969,0.668,0.993,0.164
+BaggingClassifierDT,0.4,0.817,0.516,0.821,0.668,0.994,0.038
+BaggingClassifierDT,0.3,0.871,0.446,0.875,0.66,0.993,0.05
+BaggingClassifierDT,0.5,0.775,0.533,0.778,0.656,0.994,0.029
+BaggingClassifierDT,0.15,0.938,0.337,0.945,0.641,0.992,0.09
+BaggingClassifierDT,0.05,0.979,0.26,0.987,0.623,0.992,0.211
+BaggingClassifierLSVC,0.5,0.949,0.1,0.958,0.529,0.99,0.024
+BaggingClassifierLSVC,0.3,0.98,0.065,0.99,0.528,0.99,0.059
+BaggingClassifierLSVC,0.4,0.968,0.07,0.977,0.524,0.99,0.031
+BaggingClassifierLSVC,0.25,0.984,0.044,0.994,0.519,0.99,0.047
+BaggingClassifierLSVC,0.15,0.986,0.028,0.996,0.512,0.99,0.037
+BaggingClassifierLSVC,0.1,0.988,0.019,0.998,0.509,0.989,0.028
+BaggingClassifierLSVC,0.05,0.989,0.011,1,0.505,0.989,0.019
