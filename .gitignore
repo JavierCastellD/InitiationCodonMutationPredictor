@@ -1,4 +1,5 @@
 .idea/
+data/salida/anteriorDataset/
 data/salidaIncorrecta/
 src/machine_learning/old
 src/machine_learning/__pycache__
