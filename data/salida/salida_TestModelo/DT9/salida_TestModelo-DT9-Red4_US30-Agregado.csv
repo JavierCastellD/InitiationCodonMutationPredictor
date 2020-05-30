@@ -1,0 +1,2 @@
+Parametros,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa
+gini_100_4_5,0.809,0.365,0.816,0.591,0.988,0.029

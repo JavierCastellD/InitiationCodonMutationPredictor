@@ -1,0 +1,2 @@
+Parametros,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa
+False_8_2_10_500,0.689,0.497,0.692,0.594,0.988,0.02
