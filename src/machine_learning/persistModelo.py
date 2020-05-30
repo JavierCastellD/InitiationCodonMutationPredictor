@@ -39,7 +39,7 @@ def aplicarTransformaciones(X_train, y_train):
 # Inicio código
 
 # Lectura del fichero
-X = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_filtered.tsv', sep='\t')
+X = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_capra_hirucs.tsv', sep='\t')
 name = 'VC18'
 
 # Valores de configuracion

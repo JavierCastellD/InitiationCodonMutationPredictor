@@ -127,8 +127,8 @@ def updateMetrics(y_true, y_pred, dic):
 
     return {'Accuracy': acc, 'Specifity': spec, 'Recall': rec, 'ROC_AUC': auc, 'Precision': prec, 'Kappa': kappa}
 
-def printLinea(name, us, metricas, rep):
-    salida = str(name) + ',' + str(us)
+def printLinea(name, n, us, metricas, rep):
+    salida = str(name) + ',' + str(n) + ',' + str(us)
 
     for m in metricas.keys():
         salida += ',' + str(round(metricas[m]/rep,3))
@@ -143,39 +143,35 @@ def specificity(y_true, y_predict):
 
 # Inicio código
 
-if len(sys.argv) != 3:
-    print("Uso: %s fichero.tsv n" % (sys.argv[0]))
-else:
-    # Lectura del fichero
-    fichero = sys.argv[1]
-    n = int(sys.argv[2])
-    mutaciones = pd.read_csv(fichero, sep='\t')
-    RANDOM_STATE = 1234
-    rep = 10
+# Lectura del fichero
+mutaciones = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_capra_hirucs.tsv', sep='\t')
+RANDOM_STATE = 1234
+rep = 10
 
-    # Los clasificadores que vamos a utilizar
-    metricas = ['Accuracy','Specifity','Recall','ROC_AUC','Precision','Kappa']
+# Los clasificadores que vamos a utilizar
+metricas = ['Accuracy','Specifity','Recall','ROC_AUC','Precision','Kappa']
 
-    names = ['KMeans', 'MiniBatchKMeans', 'Birch']
-    clasificadores = [KMeans(n_clusters=2, random_state=RANDOM_STATE),
-                      MiniBatchKMeans(n_clusters=2, random_state=RANDOM_STATE),
-                      Birch(n_clusters=2)
-                      ]
+names = ['KMeans', 'MiniBatchKMeans', 'Birch']
+clasificadores = [KMeans(n_clusters=2, random_state=RANDOM_STATE),
+                  MiniBatchKMeans(n_clusters=2, random_state=RANDOM_STATE),
+                  Birch(n_clusters=2)
+                  ]
 
-    # Creamos fichero salida
-    out = open('salida_ML-Clustering-RedRaro'+str(n)+'_US.csv', 'w')
+# Creamos fichero salida
+out = open('salida_ML-Clustering-Red_US.csv', 'w')
 
-    # Cabecera fichero
-    cabecera = 'Clasificador,UnderSampling,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa\n'
-    out.write(cabecera)
+# Cabecera fichero
+cabecera = 'Clasificador,FeatureSelection,UnderSampling,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa\n'
+out.write(cabecera)
 
-    # Eliminamos NO_STOP_CODON
-    mutaciones.pop('NO_STOP_CODON')
+# Eliminamos NO_STOP_CODON
+mutaciones.pop('NO_STOP_CODON')
 
-    # Me quedo con la variable de salida
-    salida = mutaciones.pop('CLASS')
+# Me quedo con la variable de salida
+salida = mutaciones.pop('CLASS')
 
-
+for n in [2,3,4,5,6,7]:
+    print('n: ' + str(n))
     for us in [0.05, 0.1, 0.15, 0.25, 0.3, 0.4, 0.5]:
         print('Undersampling: ' + str(us))
 
@@ -200,7 +196,7 @@ else:
 
             # Hay que hacer FS aquí con el conjunto de entrenamiento
             print('Realizando Feature Selection')
-            features = featureSelection(X_train_res, y_train_res, n)#[:n]
+            features = featureSelection(X_train_res, y_train_res, n)[:n]
             print(features)
             X_train_sel = X_train_res[features]
             X_test_sel = X_test[features]
@@ -224,7 +220,7 @@ else:
 
 
         for name in names:
-            linSalida = printLinea(name, us, dResultados[name], rep) + '\n'
+            linSalida = printLinea(name, n, us, dResultados[name], rep) + '\n'
             out.write(linSalida)
 
-    out.close()
+out.close()

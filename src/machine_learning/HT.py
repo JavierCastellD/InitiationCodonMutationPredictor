@@ -18,11 +18,11 @@ from src.machine_learning.predictorcodoninicio import featureSelection, aplicarT
 # Inicio código
 
 # Lectura del fichero
-n = 2
-us = 0.10
-mutaciones = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_filtered.tsv', sep='\t')
+n = 3
+us = 0.5
+mutaciones = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_capra_hirucs.tsv', sep='\t')
 RANDOM_STATE = 1234
-modelo = 'RedRaro' + str(n) + '_US' + str(int(us * 100)) + '_CS_LinearSVC'
+modelo = 'RedRaro' + str(n) + '_US' + str(int(us * 100)) + '_ET'
 
 # Eliminamos NO_STOP_CODON
 mutaciones.pop('NO_STOP_CODON')
@@ -51,22 +51,24 @@ ru = RandomUnderSampler(sampling_strategy=us)
 #          'randomforestclassifier__min_samples_leaf': [1,2,4],
 #          'randomforestclassifier__bootstrap': [True, False]
 #          }
-#params = {'extratreesclassifier__n_estimators': [1, 2, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500],
-#          'extratreesclassifier__max_depth': [1, 2, 4, 8, 16, 32, 64, 100, 150, None],
-#          'extratreesclassifier__min_samples_split': [2, 5, 10],
-#          'extratreesclassifier__min_samples_leaf': [1, 2, 4],
-#          'extratreesclassifier__bootstrap': [True, False]
-#          }
+params = {'extratreesclassifier__n_estimators': [1, 2, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500],
+          'extratreesclassifier__max_depth': [1, 2, 4, 8, 16, 32, 64, 100, 150, None],
+          'extratreesclassifier__min_samples_split': [2, 5, 10],
+          'extratreesclassifier__min_samples_leaf': [1, 2, 4],
+          'extratreesclassifier__bootstrap': [True, False]
+          }
 #params = {'decisiontreeclassifier__max_depth': [1, 2, 4, 8, 16, 32, 64, 100, 150, None],
 #          'decisiontreeclassifier__min_samples_split': [2,5,10],
 #          'decisiontreeclassifier__min_samples_leaf': [1,2,4],
 #          'decisiontreeclassifier__criterion': ['gini','entropy']
 #          }
-params = {'linearsvc__C': np.linspace(1,10, 0.01).tolist() + np.arange(15,105,5).tolist(),
-          'linearsvc__dual': [True, False]}
+#params = {'linearsvc__C': np.linspace(1,10, 0.01).tolist() + np.arange(15,105,5).tolist(),
+#          'linearsvc__dual': [True, False]}
 
 # Pipeline para que aplique UnderSampling antes de usar el clasificador
-clf = LinearSVC(random_state=RANDOM_STATE, class_weight='balanced', max_iter=100000)
+#clf = LinearSVC(random_state=RANDOM_STATE, class_weight='balanced', max_iter=100000)
+clf = ExtraTreesClassifier(random_state=RANDOM_STATE)
+#clf = RandomForestClassifier(random_state=RANDOM_STATE, class_weight='balanced')
 pipe = make_pipeline(ru, clf)
 
 # Métricas que se van a utilizar en GridSearchCV
