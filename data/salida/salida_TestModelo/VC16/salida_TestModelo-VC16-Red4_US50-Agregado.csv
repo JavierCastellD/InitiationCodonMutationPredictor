@@ -1,2 +1,0 @@
-Parametros,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa
-DT5.1_RFC1.1_ET8,0.748,0.589,0.749,0.669,0.994,0.03
