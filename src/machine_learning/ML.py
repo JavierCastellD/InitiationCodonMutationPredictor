@@ -156,6 +156,7 @@ rep = 10
 
 # Los clasificadores que vamos a utilizar
 metricas = ['Accuracy','Specifity','Recall','ROC_AUC','Precision','Kappa']
+"""
 names = ['SVC', 'SVC_Linear', 'LinearSVC', 'KNeighbors', 'RandomForest', 'AdaBoost', 'GradientBoosting',
          'GaussianNB', 'SGD','DecisionTree','ExtraTrees','BaggingClassifierDT','BaggingClassifierLSVC']
 clasificadores = [SVC(random_state=RANDOM_STATE, class_weight='balanced'),
@@ -174,38 +175,38 @@ clasificadores = [SVC(random_state=RANDOM_STATE, class_weight='balanced'),
                   BaggingClassifier(base_estimator=LinearSVC(random_state=RANDOM_STATE, max_iter=200000, class_weight='balanced'),
                                      random_state=RANDOM_STATE)
                   ]
-
 """
-dt1 = DecisionTreeClassifier(max_depth=16, min_samples_leaf=1, min_samples_split=10, criterion='entropy',
-                              random_state=RANDOM_STATE)
-dt2 = DecisionTreeClassifier(max_depth=None, min_samples_leaf=1, min_samples_split=10, criterion='gini',
-                              random_state=RANDOM_STATE)
-rfc1 = RandomForestClassifier(bootstrap=False, max_depth=32, min_samples_leaf=2, min_samples_split=2,
-                              class_weight='balanced', n_estimators=50, random_state=RANDOM_STATE)
-rfc2 = RandomForestClassifier(bootstrap=False, max_depth=16, min_samples_leaf=2, min_samples_split=10,
-                              class_weight='balanced', n_estimators=20, random_state=RANDOM_STATE)
-et8 = ExtraTreesClassifier(bootstrap=False, max_depth=16, min_samples_leaf=1, min_samples_split=2,
-                           n_estimators=200, class_weight='balanced', random_state=RANDOM_STATE)
+dt7 = DecisionTreeClassifier(max_depth=16, min_samples_leaf=4, min_samples_split=10, criterion='entropy',
+                             random_state=RANDOM_STATE, class_weight='balanced')
+bcdt14 = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced', max_depth=6,
+                                                  min_samples_leaf=4, min_samples_split=5),
+                           random_state=RANDOM_STATE, bootstrap=True, n_estimators=50)
+rfc8 = RandomForestClassifier(bootstrap=True, max_depth=32, min_samples_leaf=4, min_samples_split=2,
+                              class_weight='balanced', n_estimators=10, random_state=RANDOM_STATE)
+et1 = ExtraTreesClassifier(bootstrap=False, max_depth=16, min_samples_leaf=1, min_samples_split=2,
+                           n_estimators=1, class_weight='balanced', random_state=RANDOM_STATE)
+bcdt15 = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced', max_depth=16,
+                                                  min_samples_leaf=4, min_samples_split=5),
+                           random_state=RANDOM_STATE, bootstrap=False, n_estimators=300)
 
-names = ['DT5.1_DT5.2_RFC1.1_RFC1.2_ET8','DT5.1_DT5.2_RFC1.1','DT5.1_DT5.2_RFC1.2','DT5.1_DT5.2_ET8',
-         'DT5.1_RFC1.1_RFC1.2','DT5.1_RFC1.1_ET8','DT5.1_RFC1.2_ET8','DT5.2_RFC1.1_RFC1.2',
-         'DT5.2_RFC1.1_ET8','DT5.2_RFC1.2_ET8','RFC1.1_RFC1.2_ET8']
-clasificadores = [VotingClassifier(estimators=[('DT5.1', dt1),('DT5.2', dt2),('RFC1.1', rfc1),('RFC1.2', rfc2),('ET8', et8)]),
-                  VotingClassifier(estimators=[('DT5.1', dt1),('DT5.2', dt2),('RFC1.1', rfc1)]),
-                  VotingClassifier(estimators=[('DT5.1', dt1),('DT5.2', dt2),('RFC1.2', rfc2)]),
-                  VotingClassifier(estimators=[('DT5.1', dt1),('DT5.2', dt2),('ET8', et8)]),
-                  VotingClassifier(estimators=[('DT5.1', dt1),('RFC1.1', rfc1),('RFC1.2', rfc2)]),
-                  VotingClassifier(estimators=[('DT5.1', dt1),('RFC1.1', rfc1),('ET8', et8)]),
-                  VotingClassifier(estimators=[('DT5.1', dt1),('RFC1.2', rfc2),('ET8', et8)]),
-                  VotingClassifier(estimators=[('DT5.2', dt2),('RFC1.1', rfc1),('RFC1.2', rfc2)]),
-                  VotingClassifier(estimators=[('DT5.2', dt2),('RFC1.1', rfc1),('ET8', et8)]),
-                  VotingClassifier(estimators=[('DT5.2', dt2),('RFC1.2', rfc2),('ET8', et8)]),
-                  VotingClassifier(estimators=[('RFC1.1', rfc1),('RFC1.2', rfc2),('ET8', et8)]),
+names = ['DT7_BCDT14_RF8_ET1_BCDT15','DT7_BCDT14_RF8','DT7_BCDT14_ET1','DT7_BCDT14_BCDT15',
+         'DT7_RF8_ET1','DT7_RF8_BCDT15','DT7_ET1_BCDT15','BCDT14_RF8_ET1',
+         'BCDT14_RF8_BCDT15','BCDT14_ET1_BCDT15','RF8_ET1_BCDT15']
+clasificadores = [VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='soft'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('RF8', rfc8)], voting='soft'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('ET1', et1)], voting='soft'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('BCDT15', bcdt15)], voting='soft'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('RF8', rfc8), ('ET1', et1)], voting='soft'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('RF8', rfc8), ('BCDT15', bcdt15)], voting='soft'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('ET1', et1), ('BCDT15', bcdt15)], voting='soft'),
+                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('RF8', rfc8), ('ET1', et1)], voting='soft'),
+                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('RF8', rfc8), ('BCDT15', bcdt15)], voting='soft'),
+                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('ET1', et1), ('BCDT15', bcdt15)], voting='soft'),
+                  VotingClassifier(estimators=[('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='soft'),
                   ]
-"""
 
 # Creamos fichero salida
-out = open('salida_ML-Red_US-NM_CS.csv', 'w')
+out = open('salida_ML-EnsembleSoft-RedRaro_US.csv', 'w')
 
 # Cabecera fichero
 cabecera = 'Clasificador,FeatureSelection,UnderSampling,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa\n'
@@ -217,7 +218,7 @@ mutaciones.pop('NO_STOP_CODON')
 # Me quedo con la variable de salida
 salida = mutaciones.pop('CLASS')
 
-for n in [2,3,4,5,6,7]:
+for n in [2,3,4,5,6]:
     print('n: ' + str(n))
     for us in [0.05, 0.1, 0.15, 0.25, 0.3, 0.4, 0.5]:
         print('Undersampling: ' + str(us))
@@ -243,7 +244,7 @@ for n in [2,3,4,5,6,7]:
 
             # Hay que hacer FS aquí con el conjunto de entrenamiento
             print('Realizando Feature Selection')
-            features = featureSelection(X_train_res, y_train_res, n)[:n]
+            features = featureSelection(X_train_res, y_train_res, n)#[:n]
             print(features)
             X_train_sel = X_train_res[features]
             X_test_sel = X_test[features]

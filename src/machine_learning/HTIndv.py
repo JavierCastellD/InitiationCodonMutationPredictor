@@ -90,7 +90,7 @@ def mostrarROC_AUC(estimator, X, y, name, valores, modelo, parametro):
 # Inicio código
 
 # Lectura del fichero
-X = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_filtered.tsv', sep='\t')
+X = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_capra_hirucs.tsv', sep='\t')
 RANDOM_STATE = 1234
 
 # Valores configurar

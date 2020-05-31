@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier, BaggingClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import precision_score, cohen_kappa_score, make_scorer
 from imblearn.under_sampling import RandomUnderSampler
@@ -18,11 +18,11 @@ from src.machine_learning.predictorcodoninicio import featureSelection, aplicarT
 # Inicio código
 
 # Lectura del fichero
-n = 3
-us = 0.5
+n = 4
+us = 0.1
 mutaciones = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_capra_hirucs.tsv', sep='\t')
 RANDOM_STATE = 1234
-modelo = 'RedRaro' + str(n) + '_US' + str(int(us * 100)) + '_ET'
+modelo = 'Red' + str(n) + '_US' + str(int(us * 100)) + '_CS_ET'
 
 # Eliminamos NO_STOP_CODON
 mutaciones.pop('NO_STOP_CODON')
@@ -34,7 +34,7 @@ salida = mutaciones.pop('CLASS')
 X_train, X_test, y_train, y_test = train_test_split(mutaciones, salida, stratify=salida, train_size=0.8)
 
 # Aplicamos Feature Selection -> Para hacer PideNGetN hay que añadir [:n]
-features = featureSelection(X_train, y_train, n)#[:n]
+features = featureSelection(X_train, y_train, n)[:n]
 X_train_sel = X_train[features]
 X_test_sel = X_test[features]
 
@@ -56,7 +56,7 @@ params = {'extratreesclassifier__n_estimators': [1, 2, 5, 10, 20, 30, 40, 50, 10
           'extratreesclassifier__min_samples_split': [2, 5, 10],
           'extratreesclassifier__min_samples_leaf': [1, 2, 4],
           'extratreesclassifier__bootstrap': [True, False]
-          }
+         }
 #params = {'decisiontreeclassifier__max_depth': [1, 2, 4, 8, 16, 32, 64, 100, 150, None],
 #          'decisiontreeclassifier__min_samples_split': [2,5,10],
 #          'decisiontreeclassifier__min_samples_leaf': [1,2,4],
@@ -64,11 +64,18 @@ params = {'extratreesclassifier__n_estimators': [1, 2, 5, 10, 20, 30, 40, 50, 10
 #          }
 #params = {'linearsvc__C': np.linspace(1,10, 0.01).tolist() + np.arange(15,105,5).tolist(),
 #          'linearsvc__dual': [True, False]}
+#params = {'baggingclassifier__n_estimators' : [1, 2, 5, 10, 20, 30, 40, 50, 100, 200, 300, 400, 500],
+#          'baggingclassifier__bootstrap' : [True, False],
+#          'baggingclassifier__base_estimator__max_depth' : [1, 2, 4, 6, 16, 32, 64, 100],
+#          'baggingclassifier__base_estimator__min_samples_split' : [2,5,10],
+#          'baggingclassifier__base_estimator__min_samples_leaf' : [1,2,4]
+#          }
 
 # Pipeline para que aplique UnderSampling antes de usar el clasificador
 #clf = LinearSVC(random_state=RANDOM_STATE, class_weight='balanced', max_iter=100000)
-clf = ExtraTreesClassifier(random_state=RANDOM_STATE)
+clf = ExtraTreesClassifier(random_state=RANDOM_STATE, class_weight='balanced')
 #clf = RandomForestClassifier(random_state=RANDOM_STATE, class_weight='balanced')
+#clf = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE), random_state=RANDOM_STATE)
 pipe = make_pipeline(ru, clf)
 
 # Métricas que se van a utilizar en GridSearchCV

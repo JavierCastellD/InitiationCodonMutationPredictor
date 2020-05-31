@@ -17,11 +17,11 @@ from src.machine_learning.predictorcodoninicio import featureSelection, aplicarT
 # Lectura del fichero
 mutaciones = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_capra_hirucs.tsv', sep='\t')
 RANDOM_STATE = 1234
-n = 3
-us = 0.5
+n = 4
+us = 0.25
 rep = 100
-modelo = 'ET12-RedRaro'+str(n)+'_US'+str(int(us*100))#+'_CS'
-parametros = 'False_64_1_10_100'
+modelo = 'VC23-RedRaro'+str(n)+'_US'+str(int(us*100))#+'_CS'
+parametros = 'DT7_RF8_BCDT15_Soft'
 
 # Eliminamos NO_STOP_CODON
 mutaciones.pop('NO_STOP_CODON')
@@ -41,31 +41,28 @@ dicMetricas = dict(zip(metricas, np.zeros(len(metricas))))
 #                             bootstrap=True, random_state=RANDOM_STATE, class_weight='balanced')
 #clf = DecisionTreeClassifier(criterion='entropy', max_depth=16, min_samples_leaf=4,
 #                             min_samples_split=10, random_state=RANDOM_STATE)
-#clf = DecisionTreeClassifier(criterion='gini', max_depth=None, min_samples_split=10, min_samples_leaf=1,
-#                             random_state=RANDOM_STATE)
-clf = ExtraTreesClassifier(bootstrap=False, max_depth=64, min_samples_leaf=1, min_samples_split=10,
-                           n_estimators=100, random_state=RANDOM_STATE)
-
+#clf = ExtraTreesClassifier(bootstrap=False, max_depth=64, min_samples_leaf=1, min_samples_split=10,
+#                           n_estimators=100, random_state=RANDOM_STATE)
 #clf = BaggingClassifier(
-#    DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced', max_depth=20, min_samples_split=6,
-#                           min_samples_leaf=9, criterion='gini'),
-#    random_state=RANDOM_STATE, n_estimators=60, max_samples=0.25, max_features=0.95, bootstrap=False)
-""""
-dt1 = DecisionTreeClassifier(max_depth=16, min_samples_leaf=1, min_samples_split=10, criterion='entropy',
-                             random_state=RANDOM_STATE)
-dt2 = DecisionTreeClassifier(max_depth=None, min_samples_leaf=1, min_samples_split=10, criterion='gini',
-                             random_state=RANDOM_STATE)
-rfc1 = RandomForestClassifier(bootstrap=False, max_depth=32, min_samples_leaf=2, min_samples_split=2,
-                              class_weight='balanced', n_estimators=50, random_state=RANDOM_STATE)
-rfc2 = RandomForestClassifier(bootstrap=False, max_depth=16, min_samples_leaf=2, min_samples_split=10,
-                              class_weight='balanced', n_estimators=20, random_state=RANDOM_STATE)
-et8 = ExtraTreesClassifier(bootstrap=False, max_depth=16, min_samples_leaf=1, min_samples_split=2,
-                           n_estimators=200, class_weight='balanced', random_state=RANDOM_STATE)
+#    DecisionTreeClassifier(random_state=RANDOM_STATE, max_depth=16, min_samples_split=5,
+#                           min_samples_leaf=4), random_state=RANDOM_STATE, n_estimators=300, bootstrap=False)
 
-clf = VotingClassifier(estimators=[('DT5.1',dt1),('RFC1.1',rfc1),('RFC1.2',rfc2)])
-"""
+dt7 = DecisionTreeClassifier(max_depth=16, min_samples_leaf=4, min_samples_split=10, criterion='entropy',
+                             random_state=RANDOM_STATE, class_weight='balanced')
+bcdt14 = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced', max_depth=6,
+                                                  min_samples_leaf=4, min_samples_split=5),
+                           random_state=RANDOM_STATE, bootstrap=True, n_estimators=50)
+rfc8 = RandomForestClassifier(bootstrap=True, max_depth=32, min_samples_leaf=4, min_samples_split=2,
+                              class_weight='balanced', n_estimators=10, random_state=RANDOM_STATE)
+et1 = ExtraTreesClassifier(bootstrap=False, max_depth=16, min_samples_leaf=1, min_samples_split=2,
+                           n_estimators=1, class_weight='balanced', random_state=RANDOM_STATE)
+bcdt15 = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced', max_depth=16,
+                                                  min_samples_leaf=4, min_samples_split=5),
+                           random_state=RANDOM_STATE, bootstrap=False, n_estimators=300)
 
-
+#clf = VotingClassifier(estimators=[('RF8',rfc8),('ET1', et1),('BCDT15', bcdt15)], voting='hard')
+clf = VotingClassifier(estimators=[('DT7',dt7),('RF8', rfc8),('BCDT15', bcdt15)], voting='soft')
+#clf = VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='soft')
 
 # Creamos fichero salida para las iteraciones
 outIt = open('salida_TestModelo-'+modelo+'-Iteraciones.csv', 'w')
