@@ -1,0 +1,2 @@
+Parametros,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa
+RF8_ET1_BCDT15,0.824,0.456,0.83,0.643,0.989,0.058
