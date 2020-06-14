@@ -1,0 +1,2 @@
+Parametros,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa
+DT7_RF8_BCDT15_Soft,0.774,0.466,0.778,0.622,0.99,0.031
