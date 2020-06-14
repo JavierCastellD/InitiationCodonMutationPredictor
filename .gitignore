@@ -4,3 +4,4 @@ data/salidaIncorrecta/
 src/machine_learning/old
 src/machine_learning/__pycache__
 src/web/__pycache__
+src/web/SeqUtils/__pycache__
