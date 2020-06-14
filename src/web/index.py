@@ -9,23 +9,24 @@ from flask import Flask, request
 app = Flask(__name__)
 
 
-def predice(lmiu, psc, rfs, msl):
+def predice(lmiu, psc, rfs, msl, mp, scp):
     # Cargo el transformer
-    ct = load(pathlib.Path(__file__).parent.absolute() / '../../data/salida/modelos/ct_ET8.joblib')
+    ct = load(pathlib.Path(__file__).parent.absolute() / '../../data/salida/modelos/ct_VC22.joblib')
 
     # Tengo que crear un DF de al menos dos filas para poder usar CT
-    data = [[lmiu, psc, rfs, msl], [lmiu, psc, rfs, msl]]
+    data = [[lmiu, psc, rfs, msl, mp, scp], [lmiu, psc, rfs, msl, mp, scp]]
     df = pd.DataFrame(data, columns=['LOST_METS_IN_5_UTR', 'PREMATURE_STOP_CODON', 'READING_FRAME_STATUS',
-                                     'MUTATED_SEQUENCE_LENGTH'])
+                                     'MUTATED_SEQUENCE_LENGTH', 'MET_POSITION', 'STOP_CODON_POSITION'])
 
     # Aplico las transformaciones
     x = ct.transform(df)[0]
 
     # Cargo el modelo
-    clf = load(pathlib.Path(__file__).parent.absolute() / '../../data/salida/modelos/clf_ET8.joblib')
+    clf = load(pathlib.Path(__file__).parent.absolute() / '../../data/salida/modelos/clf_VC22.joblib')
 
     # Realizo la predicción con las variables transformadas
     predict = clf.predict([x])[0]
+
     return predict
 
 
@@ -36,8 +37,10 @@ def prediccionPorCaracteristicas():
     psc = request.args.get('psc', None)
     rfs = request.args.get('rfs', None)
     msl = request.args.get('msl', None)
+    mp = request.args.get('mp', None)
+    scp = request.args.get('scp', None)
 
-    predict = predice(lmiu, psc, rfs, msl)
+    predict = predice(lmiu, psc, rfs, msl, mp, scp)
 
     # Si la predicción es 0, devuelvo "BENIGNO"
     if predict == 0:
@@ -65,7 +68,8 @@ def prediccionPorSecuencias():
 
     # Hago la prediccion con las caracteristicas
     predict = predice(features['LOST_METS_IN_5_UTR'], features['PREMATURE_STOP_CODON'],
-                      features['READING_FRAME_STATUS'], features['MUTATED_SEQUENCE_LENGTH'])
+                      features['READING_FRAME_STATUS'], features['MUTATED_SEQUENCE_LENGTH'],
+                      features['MET_POSITION'], features['STOP_CODON_POSITION'])
 
     # Si la predicción es 0, devuelvo "BENIGNO"
     if predict == 0:
@@ -87,7 +91,8 @@ def prediccionPorSeqIdYCambio():
 
     # Hago la prediccion con las caracteristicas
     predict = predice(features['LOST_METS_IN_5_UTR'], features['PREMATURE_STOP_CODON'],
-                      features['READING_FRAME_STATUS'], features['MUTATED_SEQUENCE_LENGTH'])
+                      features['READING_FRAME_STATUS'], features['MUTATED_SEQUENCE_LENGTH'],
+                      features['MET_POSITION'], features['STOP_CODON_POSITION'])
 
     # Si la predicción es 0, devuelvo "BENIGNO"
     if predict == 0:

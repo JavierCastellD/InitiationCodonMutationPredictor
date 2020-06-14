@@ -4,6 +4,8 @@ function realizarPrediccionPorCaracteristicas(){
     var psc = document.getElementById("prematureStopCodon").value
     var msl = document.getElementById("mutatedSequenceLength").value
     var rfs = document.getElementById("readingFrameStatus").value
+    var mp = document.getElementById("metPosition").value
+    var scp = document.getElementById("stopCodonPosition").value
     
     var resultado = document.getElementById("resultadoPorCaracteristicas")
     var error = document.getElementById("errorPorCaracteristicas")
@@ -11,24 +13,37 @@ function realizarPrediccionPorCaracteristicas(){
     // Comprobamos si los valores son correctos
     if (!isNaN(lmiu) && Number(lmiu) >= 0) {
         if (!isNaN(msl) && Number(msl) >= 0) {
+            if (!isNaN(mp) && Number(mp) >= 0){
+                if (!isNaN(scp) && Number(scp) >= 0){
+                    // En este caso los valores son correctos, por lo que hacemos 
+                    // una petición al endpoint para que se ejecute el script con los datos
+                    error.style.visibility = "hidden"
+                    
+                    const Http = new XMLHttpRequest()
+                    const url = 'http://localhost:5000/prediccionPorCaracteristicas'
+                    const variables = '?lmiu='+lmiu+'&psc='+psc+'&msl='+msl+'&rfs='+rfs+'&mp='+mp+'&scp='+scp
 
-            // En este caso los valores son correctos, por lo que hacemos 
-            // una petición al endpoint para que se ejecute el script con los datos
-            error.style.visibility = "hidden"
-            
-            const Http = new XMLHttpRequest()
-            const url = 'http://localhost:5000/prediccionPorCaracteristicas'
-            const variables = '?lmiu='+lmiu+'&psc='+psc+'&msl='+msl+'&rfs='+rfs
-
-            Http.open("GET", url+variables)
-            Http.send()
-
-            Http.onreadystatechange = (e) => {
-                if (Http.readyState == 4 && Http.status == 200){
-                    resultado.textContent = "La mutación es " + Http.responseText
-                    // "La mutación es DELETEREA"
-                    // "La mutación es BENIGNA"
+                    Http.open("GET", url+variables)
+                    Http.send()
+                        
+                    Http.onreadystatechange = (e) => {
+                        if (Http.readyState == 4 && Http.status == 200){
+                            resultado.textContent = "La mutación es " + Http.responseText
+                            // "La mutación es DELETEREA"
+                            // "La mutación es BENIGNA"
+                        }
+                    }
+                } else {
+                    // En este caso, hay un problema con el valor de SCP
+                    error.style.visibility = "visible"
+                    error.textContent = "Stop Codon Position tiene que ser mayor que 0."
                 }
+                
+            } else {
+                // En este caso, hay un problema con el valor de MP
+                error.style.visibility = "visible"
+                error.textContent = "Met Position tiene que ser mayor que 0."
+                
             }
             
         } else {
