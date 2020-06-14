@@ -156,6 +156,7 @@ rep = 10
 
 # Los clasificadores que vamos a utilizar
 metricas = ['Accuracy','Specifity','Recall','ROC_AUC','Precision','Kappa']
+
 """
 names = ['SVC', 'SVC_Linear', 'LinearSVC', 'KNeighbors', 'RandomForest', 'AdaBoost', 'GradientBoosting',
          'GaussianNB', 'SGD','DecisionTree','ExtraTrees','BaggingClassifierDT','BaggingClassifierLSVC']
@@ -192,21 +193,21 @@ bcdt15 = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE, cla
 names = ['DT7_BCDT14_RF8_ET1_BCDT15','DT7_BCDT14_RF8','DT7_BCDT14_ET1','DT7_BCDT14_BCDT15',
          'DT7_RF8_ET1','DT7_RF8_BCDT15','DT7_ET1_BCDT15','BCDT14_RF8_ET1',
          'BCDT14_RF8_BCDT15','BCDT14_ET1_BCDT15','RF8_ET1_BCDT15']
-clasificadores = [VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='soft'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('RF8', rfc8)], voting='soft'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('ET1', et1)], voting='soft'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('BCDT15', bcdt15)], voting='soft'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('RF8', rfc8), ('ET1', et1)], voting='soft'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('RF8', rfc8), ('BCDT15', bcdt15)], voting='soft'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('ET1', et1), ('BCDT15', bcdt15)], voting='soft'),
-                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('RF8', rfc8), ('ET1', et1)], voting='soft'),
-                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('RF8', rfc8), ('BCDT15', bcdt15)], voting='soft'),
-                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('ET1', et1), ('BCDT15', bcdt15)], voting='soft'),
-                  VotingClassifier(estimators=[('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='soft'),
+clasificadores = [VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='hard'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('RF8', rfc8)], voting='hard'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('ET1', et1)], voting='hard'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('BCDT15', bcdt15)], voting='hard'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('RF8', rfc8), ('ET1', et1)], voting='hard'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('RF8', rfc8), ('BCDT15', bcdt15)], voting='hard'),
+                  VotingClassifier(estimators=[('DT7', dt7), ('ET1', et1), ('BCDT15', bcdt15)], voting='hard'),
+                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('RF8', rfc8), ('ET1', et1)], voting='hard'),
+                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('RF8', rfc8), ('BCDT15', bcdt15)], voting='hard'),
+                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('ET1', et1), ('BCDT15', bcdt15)], voting='hard'),
+                  VotingClassifier(estimators=[('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='hard'),
                   ]
 
 # Creamos fichero salida
-out = open('salida_ML-EnsembleSoft-RedRaro_US.csv', 'w')
+out = open('salida_ML-EnsemblHard_US.csv', 'w')
 
 # Cabecera fichero
 cabecera = 'Clasificador,FeatureSelection,UnderSampling,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa\n'
@@ -218,7 +219,7 @@ mutaciones.pop('NO_STOP_CODON')
 # Me quedo con la variable de salida
 salida = mutaciones.pop('CLASS')
 
-for n in [2,3,4,5,6]:
+for n in [2,3,4,5,6,7,8]:
     print('n: ' + str(n))
     for us in [0.05, 0.1, 0.15, 0.25, 0.3, 0.4, 0.5]:
         print('Undersampling: ' + str(us))
@@ -244,7 +245,7 @@ for n in [2,3,4,5,6]:
 
             # Hay que hacer FS aquí con el conjunto de entrenamiento
             print('Realizando Feature Selection')
-            features = featureSelection(X_train_res, y_train_res, n)#[:n]
+            features = featureSelection(X_train_res, y_train_res, n)[:n]
             print(features)
             X_train_sel = X_train_res[features]
             X_test_sel = X_test[features]

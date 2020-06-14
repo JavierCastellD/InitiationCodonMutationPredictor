@@ -158,7 +158,7 @@ clasificadores = [KMeans(n_clusters=2, random_state=RANDOM_STATE),
                   ]
 
 # Creamos fichero salida
-out = open('salida_ML-Clustering-Red_US.csv', 'w')
+out = open('salida_ML-Clustering_US.csv', 'w')
 
 # Cabecera fichero
 cabecera = 'Clasificador,FeatureSelection,UnderSampling,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa\n'
@@ -170,7 +170,7 @@ mutaciones.pop('NO_STOP_CODON')
 # Me quedo con la variable de salida
 salida = mutaciones.pop('CLASS')
 
-for n in [2,3,4,5,6,7]:
+for n in [2,3,4,5,6,7,8]:
     print('n: ' + str(n))
     for us in [0.05, 0.1, 0.15, 0.25, 0.3, 0.4, 0.5]:
         print('Undersampling: ' + str(us))
