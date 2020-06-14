@@ -15,16 +15,17 @@ from src.machine_learning.predictorcodoninicio import featureSelection, aplicarT
 # Inicio código
 
 # Lectura del fichero
-mutaciones = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_capra_hirucs.tsv', sep='\t')
+mutaciones = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_capra_hirucs_no_outliers_out.csv')
 RANDOM_STATE = 1234
-n = 4
-us = 0.25
+n = 3
+us = 0.1
 rep = 100
-modelo = 'VC23-RedRaro'+str(n)+'_US'+str(int(us*100))#+'_CS'
-parametros = 'DT7_RF8_BCDT15_Soft'
+modelo = 'VC22-No_outliers_Out-RedRaro'+str(n)+'_US'+str(int(us*100))#+'_CS'
+parametros = 'DT7_BCDT14_RF8_ET1_BCDT15_Soft'
 
 # Eliminamos NO_STOP_CODON
 mutaciones.pop('NO_STOP_CODON')
+mutaciones.pop('CONSERVED_METS_NO_STOP_IN_5_UTR')
 
 # Me quedo con la variable de salida
 salida = mutaciones.pop('CLASS')
@@ -61,8 +62,8 @@ bcdt15 = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE, cla
                            random_state=RANDOM_STATE, bootstrap=False, n_estimators=300)
 
 #clf = VotingClassifier(estimators=[('RF8',rfc8),('ET1', et1),('BCDT15', bcdt15)], voting='hard')
-clf = VotingClassifier(estimators=[('DT7',dt7),('RF8', rfc8),('BCDT15', bcdt15)], voting='soft')
-#clf = VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='soft')
+#clf = VotingClassifier(estimators=[('DT7',dt7),('RF8', rfc8),('BCDT15', bcdt15)], voting='soft')
+clf = VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='soft')
 
 # Creamos fichero salida para las iteraciones
 outIt = open('salida_TestModelo-'+modelo+'-Iteraciones.csv', 'w')
