@@ -25,7 +25,7 @@ def predice(lmiu, psc, rfs, msl, mp, scp):
     clf = load(pathlib.Path(__file__).parent.absolute() / '../../data/salida/modelos/clf_VC22.joblib')
 
     # Realizo la predicción con las variables transformadas
-    predict = clf.predict([x])[0]
+    predict = clf.predict_proba([x])[0]
 
     return predict
 
@@ -42,11 +42,11 @@ def prediccionPorCaracteristicas():
 
     predict = predice(lmiu, psc, rfs, msl, mp, scp)
 
-    # Si la predicción es 0, devuelvo "BENIGNO"
-    if predict == 0:
-        return "BENIGN", 200 
-    # Si la predicción es 1, devuelvo "DELETÉREO"
-    return "DELETERIOUS", 200
+    # Si la predicción para benigno es mayor a 0.5, devuelvo "BENIGNO"
+    if predict[0] > 0.5:
+        return "BENIGN (" + str(round(predict[0]*100, 3)) + "%)", 200 
+    # Si no, devuelvo "DELETÉREO"
+    return "DELETERIOUS (" + str(round(predict[1]*100, 3)) + "%)", 200
 
 
 @app.route('/prediccionPorSecuencias', methods=['POST'])
@@ -71,11 +71,11 @@ def prediccionPorSecuencias():
                       features['READING_FRAME_STATUS'], features['MUTATED_SEQUENCE_LENGTH'],
                       features['MET_POSITION'], features['STOP_CODON_POSITION'])
 
-    # Si la predicción es 0, devuelvo "BENIGNO"
-    if predict == 0:
-        return "BENIGN", 200
-        # Si la predicción es 1, devuelvo "DELETÉREO"
-    return "DELETERIOUS", 200
+    # Si la predicción para benigno es mayor a 0.5, devuelvo "BENIGNO"
+    if predict[0] > 0.5:
+        return "BENIGN (" + str(round(predict[0]*100, 3)) + "%)", 200 
+    # Si no, devuelvo "DELETÉREO"
+    return "DELETERIOUS (" + str(round(predict[1]*100, 3)) + "%)", 200
 
 
 @app.route('/prediccionPorSeqID', methods=['GET', 'POST'])
@@ -94,11 +94,11 @@ def prediccionPorSeqIdYCambio():
                       features['READING_FRAME_STATUS'], features['MUTATED_SEQUENCE_LENGTH'],
                       features['MET_POSITION'], features['STOP_CODON_POSITION'])
 
-    # Si la predicción es 0, devuelvo "BENIGNO"
-    if predict == 0:
-        return "BENIGN", 200
-        # Si la predicción es 1, devuelvo "DELETÉREO"
-    return "DELETERIOUS", 200
+    # Si la predicción para benigno es mayor a 0.5, devuelvo "BENIGNO"
+    if predict[0] > 0.5:
+        return "BENIGN (" + str(round(predict[0]*100, 3)) + "%)", 200 
+    # Si no, devuelvo "DELETÉREO"
+    return "DELETERIOUS (" + str(round(predict[1]*100, 3)) + "%)", 200
 
 
 if __name__ == '__main__':

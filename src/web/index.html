@@ -12,15 +12,15 @@
     <body>
         <div class="container">
             <ul class="nav nav-tabs">
-                <li class="active"><a data-toggle="tab" href="#formCaracteristicas">Características</a></li>
-                <li><a data-toggle="tab" href="#formSecuencias">Secuencias</a></li>
-                <li><a data-toggle="tab" href="#formEnsembl">Transcrito de ensembl</a></li>
+                <li class="active"><a data-toggle="tab" href="#formCaracteristicas">Features</a></li>
+                <li><a data-toggle="tab" href="#formSecuencias">Sequences</a></li>
+                <li><a data-toggle="tab" href="#formEnsembl">Ensembl Transcript</a></li>
             </ul>
 
             <div class="tab-content">
                 <div id="formCaracteristicas" class="tab-pane fade in active">
                     <form method="POST">
-                        <h1>Introduzca los datos a evaluar:</h1>
+                        <h1>Input your data</h1>
                         <p>
                             <label for="prematureStopCodon">
                                 <span>
@@ -76,7 +76,7 @@
                             <input type="number" id="stopCodonPosition" min="0">
                         </p>
                         <p>
-                            <button type="button" onclick="realizarPrediccionPorCaracteristicas()">Evaluar</button>
+                            <button type="button" onclick="realizarPrediccionPorCaracteristicas()">Evaluate</button>
                         </p>
                     </form>
                     <p>
@@ -94,7 +94,7 @@
                 </div>
                 <div id="formSecuencias" class="tab-pane fade">
                     <form method="POST">
-                        <h1>Introduzca los datos a evaluar</h1>
+                        <h1>Input your data</h1>
                         <p>
                             <label for="cdna" title="Secuencia completa del transcrito original, incluyendo 5' y 3'">
                                 <span>CDNA sequence</span>
@@ -120,7 +120,7 @@
 
                         </p>
                         <p>
-                            <button type="button" onclick="realizarPrediccionPorSecuencias()">Evaluar</button>
+                            <button type="button" onclick="realizarPrediccionPorSecuencias()">Evaluate</button>
                         </p>
                         <p>
                             <h3>
@@ -138,23 +138,23 @@
                 </div>
                 <div id="formEnsembl" class="tab-pane fade">
                     <form method="POST">
-                        <h1>Introduzca los datos a evaluar</h1>
+                        <h1>Input your data</h1>
                         <p>
                             <label for="transcriptID" title="Identificador de un transcrito de ensembl">
-                                <span>ensembl ID</span>
+                                <span>Ensembl ID</span>
                             </label>
                             <input type="text" id="transcriptID">
 
                         </p>
                         <p>
                             <label for="cambioCodon" title="Secuencia de la región codificante del transcrito original">
-                                <span>Cambio codón: ATG /</span>
+                                <span>Codon Change: ATG /</span>
                             </label>
                             <input type="text" id="cambioCodon" maxlength="3" size="3">
 
                         </p>
                         <p>
-                            <button type="button" onclick="realizarPrediccionPorEnsemblID()">Evaluar</button>
+                            <button type="button" onclick="realizarPrediccionPorEnsemblID()">Evaluate</button>
                         </p>
                         <p>
                             <h3>

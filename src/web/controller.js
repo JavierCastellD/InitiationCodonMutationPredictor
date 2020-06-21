@@ -28,7 +28,7 @@ function realizarPrediccionPorCaracteristicas(){
                         
                     Http.onreadystatechange = (e) => {
                         if (Http.readyState == 4 && Http.status == 200){
-                            resultado.textContent = "La mutación es " + Http.responseText
+                            resultado.textContent = "The mutation is " + Http.responseText
                             // "La mutación es DELETEREA"
                             // "La mutación es BENIGNA"
                         }
@@ -79,7 +79,7 @@ function realizarPrediccionPorSecuencias(){
 
     xhttp.onreadystatechange = (e) => {
         if (Http.readyState == 4 && Http.status == 200){
-            resultado.textContent = "La mutación es " + Http.responseText
+            resultado.textContent = "The mutation is " + Http.responseText
             // "La mutación es DELETEREA"
             // "La mutación es BENIGNA"
         }
@@ -101,7 +101,7 @@ function realizarPrediccionPorEnsemblID(){
 
     Http.onreadystatechange = (e) => {
         if (Http.readyState == 4 && Http.status == 200){
-            resultado.textContent = "La mutación es " + Http.responseText
+            resultado.textContent = "The mutation is " + Http.responseText
             // "La mutación es DELETEREA"
             // "La mutación es BENIGNA"
         }
