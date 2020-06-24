@@ -1,4 +1,4 @@
-# Predictor Mutacion Codón Inicio
+# Método Predicción de Mutaciones Codón de Inicio
 Proyecto de investigación y TFG sobre la creación de un predictor de mutaciones en el codón de inicio. 
 Grado en Ingeniería Informática UMU. Curso 2019-2020.
 
@@ -19,12 +19,14 @@ En esta carpeta nos encontramos los siguientes ficheros:
 - TestModelo.py: script para obtener métricas algo más fiables sobre un modelo.
 - persistModelo.py: script para persistir un modelo y su codificador.
 - predictorcodoninicio.py: fichero con distintas funciones que se han ido utilizando.
+- comparaciones.py: es donde se hace la comparación de rendimiento entre un modelo y SIFT y PolyPhen.
+- compracionesIteracion.py: igual que el fichero comparaciones.py pero se repite varias veces el proceso y devuelve información sobre el rendimiento de cada método en cada iteración.
 
 #### web/
 En esta carpeta nos encontramos los siguientes ficheros:
-- controller.js: Controlador JS de la web. [WIP]
-- index.html: Fichero HTML de la web. [WIP]
-- index.py: Endpoint que recoge las peticiones del controlador. [WIP]
+- controller.js: Controlador JS de la web.
+- index.html: Fichero HTML de la web.
+- index.py: Endpoint que recoge las peticiones del controlador.
 
 ### data/
 En data/ es donde se almacenan los ficheros de entrada y salida, ordenados en sus respectivas carpetas. Dentro de la carpeta de salida tenemos una carpeta para cada uno de los scripts anteriores que generen archivos. Asimismo, hay una carpeta con los modelos que se han ido generando.
