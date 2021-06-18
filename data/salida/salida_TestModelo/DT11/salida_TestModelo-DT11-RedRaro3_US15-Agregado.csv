@@ -1,2 +1,0 @@
-Parametros,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa
-entropy_16_4_10,0.906,0.295,0.916,0.606,0.988,0.067
