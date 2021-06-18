@@ -4,6 +4,7 @@
 # y sys para la entrada
 import sys
 import pandas as pd
+import pathlib
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.svm import SVC, LinearSVC
@@ -150,16 +151,19 @@ def specificity(y_true, y_predict):
 # Inicio código
 
 # Lectura del fichero
-mutaciones = pd.read_csv('/home/javi/Desktop/PredictorMutacionCodonInicio/data/entrada/homo_sapiens_capra_hirucs.tsv', sep='\t')
+mutaciones = pd.read_csv(pathlib.Path(__file__).parent.absolute() / '/../../data/entrada/dataset_train.csv')
 RANDOM_STATE = 1234
-rep = 10
+rep = 20
 
 # Los clasificadores que vamos a utilizar
 metricas = ['Accuracy','Specifity','Recall','ROC_AUC','Precision','Kappa']
 
-"""
+'''
 names = ['SVC', 'SVC_Linear', 'LinearSVC', 'KNeighbors', 'RandomForest', 'AdaBoost', 'GradientBoosting',
          'GaussianNB', 'SGD','DecisionTree','ExtraTrees','BaggingClassifierDT','BaggingClassifierLSVC']
+
+#names = ['SVC', 'SVC_Linear', 'LinearSVC', 'RandomForest', 'SGD','DecisionTree','ExtraTrees',
+#         'BaggingClassifierDT','BaggingClassifierLSVC']
 clasificadores = [SVC(random_state=RANDOM_STATE, class_weight='balanced'),
                   SVC(random_state=RANDOM_STATE, kernel='linear', class_weight='balanced'),
                   LinearSVC(random_state=RANDOM_STATE, max_iter=20000, class_weight='balanced'),
@@ -176,7 +180,35 @@ clasificadores = [SVC(random_state=RANDOM_STATE, class_weight='balanced'),
                   BaggingClassifier(base_estimator=LinearSVC(random_state=RANDOM_STATE, max_iter=200000, class_weight='balanced'),
                                      random_state=RANDOM_STATE)
                   ]
-"""
+
+'''
+et1 = ExtraTreesClassifier(bootstrap=True, max_depth=64, min_samples_leaf=1, min_samples_split=2, n_estimators=300,
+                           random_state=RANDOM_STATE)
+dt5 = DecisionTreeClassifier(criterion='gini', max_depth=64, min_samples_leaf=4, min_samples_split=2,
+                             random_state=RANDOM_STATE, class_weight='balanced')
+bcdt1 = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE, max_depth=16, min_samples_leaf=2, min_samples_split=5),
+                           random_state=RANDOM_STATE, bootstrap=False, n_estimators=10)
+dt6 = DecisionTreeClassifier(criterion='gini', max_depth=16, min_samples_leaf=2, min_samples_split=2,
+                             random_state=RANDOM_STATE, class_weight='balanced')
+rf2 = RandomForestClassifier(bootstrap=False, max_depth=32, min_samples_leaf=2, min_samples_split=2, n_estimators=10,
+                             random_state=RANDOM_STATE, class_weight='balanced')
+
+names = ['VC1', 'VC2', 'VC3', 'VC4', 'VC5', 'VC6', 'VC7', 'VC8', 'VC9', 'VC10', 'VC11']
+clasificadores = [VotingClassifier(estimators=[('DT5', dt5), ('ET1', et1), ('RF2', rf2)], voting='hard'),
+                  VotingClassifier(estimators=[('DT5', dt5), ('ET1', et1), ('BCDT1', bcdt1)], voting='hard'),
+                  VotingClassifier(estimators=[('DT5', dt5), ('ET1', et1), ('DT6', dt6)], voting='hard'),
+                  VotingClassifier(estimators=[('DT5', dt5), ('RF2', rf2), ('BCDT1', bcdt1)], voting='hard'),
+                  VotingClassifier(estimators=[('DT5', dt5), ('RF2', rf2), ('DT6', dt6)], voting='hard'),
+                  VotingClassifier(estimators=[('DT5', dt5), ('BCDT1', bcdt1), ('DT6', dt6)], voting='hard'),
+                  VotingClassifier(estimators=[('ET1', et1), ('RF2', rf2), ('BCDT1', bcdt1)], voting='hard'),
+                  VotingClassifier(estimators=[('ET1', et1), ('RF2', rf2), ('DT6', dt6)], voting='hard'),
+                  VotingClassifier(estimators=[('ET1', et1), ('BCDT1', bcdt1), ('DT6', dt6)], voting='hard'),
+                  VotingClassifier(estimators=[('RF2', rf2), ('BCDT1', bcdt1), ('DT6', dt6)], voting='hard'),
+                  VotingClassifier(estimators=[('DT5', dt5), ('ET1', et1), ('RF2', rf2), ('BCDT1', bcdt1), ('DT6', dt6)], voting='hard')
+                  ]
+
+
+'''
 dt7 = DecisionTreeClassifier(max_depth=16, min_samples_leaf=4, min_samples_split=10, criterion='entropy',
                              random_state=RANDOM_STATE, class_weight='balanced')
 bcdt14 = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced', max_depth=6,
@@ -205,9 +237,10 @@ clasificadores = [VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14),
                   VotingClassifier(estimators=[('BCDT14', bcdt14), ('ET1', et1), ('BCDT15', bcdt15)], voting='hard'),
                   VotingClassifier(estimators=[('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='hard'),
                   ]
+'''
 
 # Creamos fichero salida
-out = open('salida_ML-EnsemblHard_US.csv', 'w')
+out = open('salida_ML-VCHard_Red.csv', 'w') #Preparado
 
 # Cabecera fichero
 cabecera = 'Clasificador,FeatureSelection,UnderSampling,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa\n'
@@ -219,9 +252,9 @@ mutaciones.pop('NO_STOP_CODON')
 # Me quedo con la variable de salida
 salida = mutaciones.pop('CLASS')
 
-for n in [2,3,4,5,6,7,8]:
+for n in [2,3,4,5]:
     print('n: ' + str(n))
-    for us in [0.05, 0.1, 0.15, 0.25, 0.3, 0.4, 0.5]:
+    for us in [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]:
         print('Undersampling: ' + str(us))
 
         # Diccionario para los resultados
@@ -245,7 +278,7 @@ for n in [2,3,4,5,6,7,8]:
 
             # Hay que hacer FS aquí con el conjunto de entrenamiento
             print('Realizando Feature Selection')
-            features = featureSelection(X_train_res, y_train_res, n)[:n]
+            features = featureSelection(X_train_res, y_train_res, n)[:n] # La técnica rara (2) sería quitar el [:n]
             print(features)
             X_train_sel = X_train_res[features]
             X_test_sel = X_test[features]
@@ -273,18 +306,4 @@ for n in [2,3,4,5,6,7,8]:
             out.write(linSalida)
 
 out.close()
-
-
-### COSAS ÚTILES POR SI LAS NECESITO ###
-## PARA OBTENER LOS NOMBRES DE LOS PREDICTORES DE ENTRADA Y SALIDA
-# nombreSalida = set(['CLASS'])
-# nombreEntradas = set(mutaciones.keys()).difference(nombreSalida)
-## PARA OBTENER LOS VALORES DE LOS PREDICTORES DE ENTRADA Y SALIDA
-# predsalida = mutaciones.pop('CLASS') --opcional: .values
-# predEntrada = mutaciones[nombreEntradas] --opcional: .values
-## LOS NOMBRES DE LAS VARIABLES CATEGÓRICAS-> Quizá 'CDS_COORDS' también la tendría que tratar como una variable categórica
-# varCategoricas = ['AMINOACID_CHANGE', 'CODON_CHANGE', 'READING_FRAME_STATUS', 'NO_STOP_CODON', 'PREMATURE_STOP_CODON']
-# 	varNumericas = ['NMETS_5_UTR', 'CONSERVED_METS_IN_5_UTR', 'LOST_METS_IN_5_UTR', 'CONSERVED_METS_NO_STOP_IN_5_UTR', 'CDS_COORDS', 'MET_POSITION', 'STOP_CODON_POSITION', 'MUTATED_SEQUENCE_LENGTH']
-## PARA APLICAR LAS TRANSFORMACIONES, A ENTRENAMIENTO: ct.fit_transform() Y A TEST: ct.transform()
-# predictores = ['NMETS_5_UTR', 'CONSERVED_METS_IN_5_UTR', 'LOST_METS_IN_5_UTR', 'CONSERVED_METS_NO_STOP_IN_5_UTR', 'CDS_COORDS', 'AMINOACID_CHANGE', 'CODON_CHANGE', 'MET_POSITION', 'READING_FRAME_STATUS', 'NO_STOP_CODON','PREMATURE_STOP_CODON', 'STOP_CODON_POSITION', 'MUTATED_SEQUENCE_LENGTH']
 
