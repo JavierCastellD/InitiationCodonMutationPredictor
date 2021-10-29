@@ -1,4 +1,4 @@
-# A prediction method for the effect of mutations inthe initiation codon
+# A prediction method for the effect of mutations in the initiation codon
 Project for the creation of a method of predicting mutations in the initiation codon by using machine learning algorithms.
 The dataset obtained from Ensembl that was used in this project can be found in the following link: [WIP]
 
@@ -11,14 +11,14 @@ The following libraries are needed to execute the scripts:
 
 ## Structure
 ### src/
-Here you can find the code we have developed an it is distributed in the following folders:
+Here you can find the code we have developed and it is distributed in the following folders:
 - machine_learning: that is where we have placed the scripts used for the tests.
 - web: web page related files.
 
 #### machine_learning/
 We can find the following files:
 - HT.py: script for the hyperparameter fine-tuning.
-- ML.py: script intended for testing of different machine learning algorithms, as well as some parameters for them, such as % of undersampling or number of features.
+- ML.py: script intended for testing different machine learning algorithms, as well as some parameters for them, such as % of undersampling or number of features.
 - TestModelo.py: script to perform multiple tests on a model.
 - comparaciones.py: script to compare the performance of a model and SIFT and PolyPhen.
 
