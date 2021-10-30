@@ -1,8 +1,3 @@
-# Importamos pandas para leer el CSV
-# sklearn para la librería de Machine Learning
-# imblearn para undersampling y oversampling
-# y sys para la entrada
-import sys
 import pandas as pd
 import pathlib
 import numpy as np
@@ -13,297 +8,124 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier, ExtraTreesClassifier, BaggingClassifier, VotingClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.linear_model import SGDClassifier
-from imblearn.under_sampling import RandomUnderSampler, NearMiss
-from sklearn.preprocessing import OneHotEncoder, MinMaxScaler, LabelEncoder, OrdinalEncoder
-from sklearn.feature_selection import SelectKBest, chi2, f_classif, mutual_info_classif, SelectFromModel
-from sklearn.linear_model import LogisticRegression
-from sklearn.compose import ColumnTransformer
-from sklearn.metrics import confusion_matrix, recall_score, precision_score, roc_auc_score, cohen_kappa_score, \
-    accuracy_score
+from imblearn.under_sampling import RandomUnderSampler
+from initiationcodonpredictor import featureSelection, applyTransformationsTrainTest, updateMetrics, printLine
 
-# Funciones
-
-def elementosMasRepetidos(lista):
-    elementos = np.unique(lista)
-    dic = dict(zip(elementos, np.zeros(len(elementos))))
-
-    for elem in lista:
-        dic[elem] += 1
-
-    elementosOrdenados = [i[0] for i in sorted(dic.items(), key=lambda x: x[1], reverse=True)]
-
-    return elementosOrdenados
-
-
-def featureSelection(X, y, n):
-    # Obtenemos cuáles son las variables categóricas y cuáles son las numéricas
-    varCategoricas = []
-    varNumericas = []
-
-    for feature in X.keys():
-        if (isinstance(X.iloc[0][feature], str)):
-            varCategoricas.append(feature)
-        else:
-            varNumericas.append(feature)
-
-    # Creamos un nuevo DataFrame con los valores transformados y escalados
-    oe = OrdinalEncoder()
-    cat = oe.fit_transform(X[varCategoricas])
-    xcat = pd.DataFrame(cat, columns=varCategoricas)
-    mm = MinMaxScaler()
-    num = mm.fit_transform(X[varNumericas])
-    xnum = pd.DataFrame(num, columns=varNumericas)
-    X = pd.concat([xcat, xnum], axis=1, join='inner')
-
-    # Aplicamos Chi2
-    chi_selector = SelectKBest(chi2, k=n)
-    chi_selector.fit(X, y)
-    chi_support = chi_selector.get_support()
-    chi_feature = X.loc[:, chi_support].columns.tolist()
-
-    # Aplicamos ANOVA
-    anova = SelectKBest(f_classif, k=n)
-    anova.fit(X, y)
-    anova_support = anova.get_support()
-    anova_feature = X.loc[:, anova_support].columns.tolist()
-
-    # Mutual Information
-    mi = SelectKBest(mutual_info_classif, k=n)
-    mi.fit(X, y)
-    mi_support = mi.get_support()
-    mi_feature = X.loc[:, mi_support].columns.tolist()
-
-    # FS Lasso
-    lasso = SelectFromModel(LogisticRegression(penalty="l1", solver='liblinear', max_iter=1000), max_features=n)
-    lasso.fit(X, y)
-    lasso_support = lasso.get_support()
-    lasso_feature = X.loc[:, lasso_support].columns.tolist()
-
-    # FS Lasso SAGA
-    lasso_saga = SelectFromModel(LogisticRegression(penalty="l1", solver='saga', max_iter=20000), max_features=n)
-    lasso_saga.fit(X, y)
-    lasso_saga_support = lasso_saga.get_support()
-    lasso_saga_feature = X.loc[:, lasso_saga_support].columns.tolist()
-
-    return elementosMasRepetidos(chi_feature + mi_feature + anova_feature + lasso_feature + lasso_saga_feature)
-
-def aplicarTransformacionesTrainTest(X_train, y_train, X_test, y_test):
-    # Obtenemos cuáles son las variables categóricas y cuáles son las numéricas
-    varCategoricas = []
-    varNumericas = []
-
-    for feature in X_train.keys():
-        if (isinstance(X_train.iloc[0][feature], str)):
-            varCategoricas.append(feature)
-        else:
-            varNumericas.append(feature)
-
-    # Creamos el ColumnTransformer con los codificadores para cada tipo de predictor
-    trans = [('oneHotEncoder', OneHotEncoder(sparse=False, handle_unknown='ignore'), varCategoricas),
-             ('MinMaxScaler', MinMaxScaler(), varNumericas)]
-    ct = ColumnTransformer(transformers=trans)
-
-    # Creamos un labelEncoder para la variable de salida
-    enc = LabelEncoder()
-    enc.fit(['BENIGN', 'DELETERIOUS'])  # 0 == BENIGN y 1 == DELETERIOUS
-
-    # Transformamos los conjuntos de entrenamiento
-    X_train_trans = ct.fit_transform(X_train)
-    y_train_trans = enc.transform(y_train)
-
-    # Transformamos los conjuntos de test
-    X_test_trans = ct.transform(X_test)
-    y_test_trans = enc.transform(y_test)
-
-    return X_train_trans, y_train_trans, X_test_trans, y_test_trans
-
-def updateMetrics(y_true, y_pred, dic):
-    acc = accuracy_score(y_true, y_pred)
-    spec = specificity(y_true, y_pred)
-    rec = recall_score(y_true, y_pred)
-    auc = roc_auc_score(y_true, y_pred)
-    prec = precision_score(y_true, y_pred)
-    kappa = cohen_kappa_score(y_true, y_pred)
-
-    dic['Accuracy'] += acc
-    dic['Specifity'] += spec
-    dic['Recall'] += rec
-    dic['ROC_AUC'] += auc
-    dic['Precision'] += prec
-    dic['Kappa'] += kappa
-
-    return {'Accuracy': acc, 'Specifity': spec, 'Recall': rec, 'ROC_AUC': auc, 'Precision': prec, 'Kappa': kappa}
-
-def printLinea(name, n, us, metricas, rep):
-    salida = str(name) + ',' + str(n) + ',' + str(us)
-
-    for m in metricas.keys():
-        salida += ',' + str(round(metricas[m]/rep,3))
-
-    return salida
-
-def specificity(y_true, y_predict):
-    tn, fp, fn, tp = confusion_matrix(y_true, y_predict).ravel()
-    specif = tn / (tn + fp)
-
-    return specif
-
-# Inicio código
-
-# Lectura del fichero
-mutaciones = pd.read_csv(pathlib.Path(__file__).parent.absolute() / '/../../data/entrada/dataset_train.csv')
+# We establish a seed
 RANDOM_STATE = 1234
+
+# Define the number of repetitions
 rep = 20
 
-# Los clasificadores que vamos a utilizar
-metricas = ['Accuracy','Specifity','Recall','ROC_AUC','Precision','Kappa']
+# Define the number of features to test
+n_features = [2,3,4,5]
 
-'''
+# Define the percentages of undersampling
+p_undersampling = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+
+# Feature selection technique (1 or 2)
+fst_version = 1
+
+# The metrics we use
+metrics = ['Accuracy', 'Specifity', 'Recall', 'ROC_AUC', 'Precision', 'Kappa']
+
+# The names of the classifiers for the output file
 names = ['SVC', 'SVC_Linear', 'LinearSVC', 'KNeighbors', 'RandomForest', 'AdaBoost', 'GradientBoosting',
          'GaussianNB', 'SGD','DecisionTree','ExtraTrees','BaggingClassifierDT','BaggingClassifierLSVC']
 
-#names = ['SVC', 'SVC_Linear', 'LinearSVC', 'RandomForest', 'SGD','DecisionTree','ExtraTrees',
-#         'BaggingClassifierDT','BaggingClassifierLSVC']
-clasificadores = [SVC(random_state=RANDOM_STATE, class_weight='balanced'),
-                  SVC(random_state=RANDOM_STATE, kernel='linear', class_weight='balanced'),
-                  LinearSVC(random_state=RANDOM_STATE, max_iter=20000, class_weight='balanced'),
-                  KNeighborsClassifier(),
-                  RandomForestClassifier(random_state=RANDOM_STATE, class_weight='balanced'),
-                  AdaBoostClassifier(random_state=RANDOM_STATE),
-                  GradientBoostingClassifier(random_state=RANDOM_STATE),
-                  GaussianNB(),
-                  SGDClassifier(random_state=RANDOM_STATE, shuffle=True, class_weight='balanced'),
-                  DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced'),
-                  ExtraTreesClassifier(random_state=RANDOM_STATE, class_weight='balanced'),
-                  BaggingClassifier(base_estimator=DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced'),
+# The models we will be testing
+classifiers = [SVC(random_state=RANDOM_STATE, class_weight='balanced'),
+               SVC(random_state=RANDOM_STATE, kernel='linear', class_weight='balanced'),
+               LinearSVC(random_state=RANDOM_STATE, max_iter=20000, class_weight='balanced'),
+               KNeighborsClassifier(),
+               RandomForestClassifier(random_state=RANDOM_STATE, class_weight='balanced'),
+               AdaBoostClassifier(random_state=RANDOM_STATE),
+               GradientBoostingClassifier(random_state=RANDOM_STATE),
+               GaussianNB(),
+               SGDClassifier(random_state=RANDOM_STATE, shuffle=True, class_weight='balanced'),
+               DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced'),
+               ExtraTreesClassifier(random_state=RANDOM_STATE, class_weight='balanced'),
+               BaggingClassifier(base_estimator=DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced'),
                                      random_state=RANDOM_STATE),
-                  BaggingClassifier(base_estimator=LinearSVC(random_state=RANDOM_STATE, max_iter=200000, class_weight='balanced'),
+               BaggingClassifier(base_estimator=LinearSVC(random_state=RANDOM_STATE, max_iter=200000, class_weight='balanced'),
                                      random_state=RANDOM_STATE)
-                  ]
+               ]
 
-'''
-et1 = ExtraTreesClassifier(bootstrap=True, max_depth=64, min_samples_leaf=1, min_samples_split=2, n_estimators=300,
-                           random_state=RANDOM_STATE)
-dt5 = DecisionTreeClassifier(criterion='gini', max_depth=64, min_samples_leaf=4, min_samples_split=2,
-                             random_state=RANDOM_STATE, class_weight='balanced')
-bcdt1 = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE, max_depth=16, min_samples_leaf=2, min_samples_split=5),
-                           random_state=RANDOM_STATE, bootstrap=False, n_estimators=10)
-dt6 = DecisionTreeClassifier(criterion='gini', max_depth=16, min_samples_leaf=2, min_samples_split=2,
-                             random_state=RANDOM_STATE, class_weight='balanced')
-rf2 = RandomForestClassifier(bootstrap=False, max_depth=32, min_samples_leaf=2, min_samples_split=2, n_estimators=10,
-                             random_state=RANDOM_STATE, class_weight='balanced')
+# We open the CSV file containing the mutations
+mutations = pd.read_csv(pathlib.Path(__file__).parent.absolute() / './../../data/entrada/dataset_train.csv')
 
-names = ['VC1', 'VC2', 'VC3', 'VC4', 'VC5', 'VC6', 'VC7', 'VC8', 'VC9', 'VC10', 'VC11']
-clasificadores = [VotingClassifier(estimators=[('DT5', dt5), ('ET1', et1), ('RF2', rf2)], voting='hard'),
-                  VotingClassifier(estimators=[('DT5', dt5), ('ET1', et1), ('BCDT1', bcdt1)], voting='hard'),
-                  VotingClassifier(estimators=[('DT5', dt5), ('ET1', et1), ('DT6', dt6)], voting='hard'),
-                  VotingClassifier(estimators=[('DT5', dt5), ('RF2', rf2), ('BCDT1', bcdt1)], voting='hard'),
-                  VotingClassifier(estimators=[('DT5', dt5), ('RF2', rf2), ('DT6', dt6)], voting='hard'),
-                  VotingClassifier(estimators=[('DT5', dt5), ('BCDT1', bcdt1), ('DT6', dt6)], voting='hard'),
-                  VotingClassifier(estimators=[('ET1', et1), ('RF2', rf2), ('BCDT1', bcdt1)], voting='hard'),
-                  VotingClassifier(estimators=[('ET1', et1), ('RF2', rf2), ('DT6', dt6)], voting='hard'),
-                  VotingClassifier(estimators=[('ET1', et1), ('BCDT1', bcdt1), ('DT6', dt6)], voting='hard'),
-                  VotingClassifier(estimators=[('RF2', rf2), ('BCDT1', bcdt1), ('DT6', dt6)], voting='hard'),
-                  VotingClassifier(estimators=[('DT5', dt5), ('ET1', et1), ('RF2', rf2), ('BCDT1', bcdt1), ('DT6', dt6)], voting='hard')
-                  ]
+# Remove the NO_STOP_CODON feature
+mutations.pop('NO_STOP_CODON')
 
+# Take out the target feature
+target = mutations.pop('CLASS')
 
-'''
-dt7 = DecisionTreeClassifier(max_depth=16, min_samples_leaf=4, min_samples_split=10, criterion='entropy',
-                             random_state=RANDOM_STATE, class_weight='balanced')
-bcdt14 = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced', max_depth=6,
-                                                  min_samples_leaf=4, min_samples_split=5),
-                           random_state=RANDOM_STATE, bootstrap=True, n_estimators=50)
-rfc8 = RandomForestClassifier(bootstrap=True, max_depth=32, min_samples_leaf=4, min_samples_split=2,
-                              class_weight='balanced', n_estimators=10, random_state=RANDOM_STATE)
-et1 = ExtraTreesClassifier(bootstrap=False, max_depth=16, min_samples_leaf=1, min_samples_split=2,
-                           n_estimators=1, class_weight='balanced', random_state=RANDOM_STATE)
-bcdt15 = BaggingClassifier(DecisionTreeClassifier(random_state=RANDOM_STATE, class_weight='balanced', max_depth=16,
-                                                  min_samples_leaf=4, min_samples_split=5),
-                           random_state=RANDOM_STATE, bootstrap=False, n_estimators=300)
+# We open the output file
+out = open('TEST.csv', 'w')
 
-names = ['DT7_BCDT14_RF8_ET1_BCDT15','DT7_BCDT14_RF8','DT7_BCDT14_ET1','DT7_BCDT14_BCDT15',
-         'DT7_RF8_ET1','DT7_RF8_BCDT15','DT7_ET1_BCDT15','BCDT14_RF8_ET1',
-         'BCDT14_RF8_BCDT15','BCDT14_ET1_BCDT15','RF8_ET1_BCDT15']
-clasificadores = [VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='hard'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('RF8', rfc8)], voting='hard'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('ET1', et1)], voting='hard'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('BCDT14', bcdt14), ('BCDT15', bcdt15)], voting='hard'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('RF8', rfc8), ('ET1', et1)], voting='hard'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('RF8', rfc8), ('BCDT15', bcdt15)], voting='hard'),
-                  VotingClassifier(estimators=[('DT7', dt7), ('ET1', et1), ('BCDT15', bcdt15)], voting='hard'),
-                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('RF8', rfc8), ('ET1', et1)], voting='hard'),
-                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('RF8', rfc8), ('BCDT15', bcdt15)], voting='hard'),
-                  VotingClassifier(estimators=[('BCDT14', bcdt14), ('ET1', et1), ('BCDT15', bcdt15)], voting='hard'),
-                  VotingClassifier(estimators=[('RF8', rfc8), ('ET1', et1), ('BCDT15', bcdt15)], voting='hard'),
-                  ]
-'''
+# Write the header of the output file
+header = 'Classifier,FeatureSelection,UnderSampling,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa\n'
+out.write(header)
 
-# Creamos fichero salida
-out = open('salida_ML-VCHard_Red.csv', 'w') #Preparado
-
-# Cabecera fichero
-cabecera = 'Clasificador,FeatureSelection,UnderSampling,Accuracy,Specifity,Recall,ROC_AUC,Precision,Kappa\n'
-out.write(cabecera)
-
-# Eliminamos NO_STOP_CODON
-mutaciones.pop('NO_STOP_CODON')
-
-# Me quedo con la variable de salida
-salida = mutaciones.pop('CLASS')
-
-for n in [2,3,4,5]:
+# For each value of paramters to test
+for n in n_features:
     print('n: ' + str(n))
-    for us in [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]:
+    for us in p_undersampling:
         print('Undersampling: ' + str(us))
 
-        # Diccionario para los resultados
-        dicMetricas = []
+        # Dictionary for the results
+        dicMetrics = []
         for i in range(len(names)):
-            dicMetricas.append(dict(zip(metricas, np.zeros(len(metricas)))))
-        dResultados = dict(zip(names, dicMetricas))
+            dicMetrics.append(dict(zip(metrics, np.zeros(len(metrics)))))
+        dicResults = dict(zip(names, dicMetrics))
 
+        # We repeat rep times the training and testing with different train/test splits
         for i in range(rep):
-            print('Iteracion: ' + str(i+1))
-            # Separamos en conjuntos de train y test
-            X_train, X_test, y_train, y_test = train_test_split(mutaciones, salida, stratify=salida, train_size=0.8)
+            print('Iteration: ' + str(i+1))
 
-            ###############################
-            ### PREPROCESAMOS LOS DATOS ###
-            ###############################
+            # Split the dataset into training and test subsets
+            X_train, X_test, y_train, y_test = train_test_split(mutations, target, stratify=target, train_size=0.8)
 
-            # Hacemos UnderSampling
+            # Undersampling
             ru = RandomUnderSampler(sampling_strategy=us)
             X_train_res, y_train_res = ru.fit_resample(X_train, y_train)
 
-            # Hay que hacer FS aquí con el conjunto de entrenamiento
-            print('Realizando Feature Selection')
-            features = featureSelection(X_train_res, y_train_res, n)[:n] # La técnica rara (2) sería quitar el [:n]
+            # Feature selection
+            features = featureSelection(X_train_res, y_train_res, n, version=fst_version)
             print(features)
             X_train_sel = X_train_res[features]
             X_test_sel = X_test[features]
 
 
-            # Aplicamos las transformaciones al conjunto de entrenamiento
-            X_train_trans, y_train_trans, X_test_trans, y_test_trans = aplicarTransformacionesTrainTest(X_train_sel, y_train_res, X_test_sel,
+            # Apply transformations to the dataset (onehotencoder for categorical and minmax scaling for numerical)
+            X_train_trans, y_train_trans, X_test_trans, y_test_trans = applyTransformationsTrainTest(X_train_sel, y_train_res, X_test_sel,
                                                                                                         y_test)
 
-            ################################
-            ### APLICAR MACHINE LEARNING ###
-            ################################
+            '''
+            # Perform RFECV
+            estimator = clone(dt8)
+            rfecv = RFECV(estimator=estimator, min_features_to_select=3, cv=4, scoring='roc_auc')
+            rfecv.fit(X_train_trans, y_train_trans)
+        
+            print(inverseCT(rfecv.support_))
+        
+            X_train_trans = rfecv.transform(X_train_trans)
+            X_test_trans = rfecv.transform(X_test_trans)
+            '''
 
-            print('Realizando pruebas con clasificadores')
-            for name, clf in zip(names, clasificadores):
-                print('Clasificador actual: ' + name)
+
+            # Testing machine lerning algorithms
+            for name, clf in zip(names, classifiers):
+                print('Classifier: ' + name)
                 clf.fit(X_train_trans, y_train_trans)
                 y_pred = clf.predict(X_test_trans)
 
-                updateMetrics(y_test_trans, y_pred, dResultados[name])
+                updateMetrics(y_test_trans, y_pred, dicResults[name])
 
 
         for name in names:
-            linSalida = printLinea(name, n, us, dResultados[name], rep) + '\n'
-            out.write(linSalida)
+            outputLine = printLine(name, n, us, dicResults[name], rep) + '\n'
+            out.write(outputLine)
 
 out.close()
 
