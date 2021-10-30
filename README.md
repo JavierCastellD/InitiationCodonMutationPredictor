@@ -17,10 +17,11 @@ Here you can find the code we have developed and it is distributed in the follow
 
 #### machine_learning/
 We can find the following files:
-- HT.py: script for the hyperparameter fine-tuning.
 - ML.py: script intended for testing different machine learning algorithms, as well as some parameters for them, such as % of undersampling or number of features.
-- TestModelo.py: script to perform multiple tests on a model.
-- comparaciones.py: script to compare the performance of a model and SIFT and PolyPhen.
+- HT.py: script for the hyperparameter fine-tuning.
+- TestModel.py: script to perform multiple tests on a model.
+- compareIterations.py: script to compare the performance of a model and SIFT and PolyPhen.
+- intiationcodonpredictor.py: auxiliar functions for other scripts.
 
 #### web/
 In this folder we can find files related to the webpage:
