@@ -8,96 +8,93 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
+# Function that performs the prediction and returns the percentage of the mutation being
+# benign and deleterious respectively
+def predice(nm5, msl, mp, scp):
+    # Load the Transformer
+    ct = load(pathlib.Path(__file__).parent.absolute() / '../../data/salida_paper/models/ct_VC10B.joblib')
 
-def predice(lmiu, psc, rfs, msl, mp, scp):
-    # Cargo el transformer
-    ct = load(pathlib.Path(__file__).parent.absolute() / '../../data/salida/modelos/ct_VC22.joblib')
+    # In order to use ColumnTransformer we need at least two rows
+    data = [[nm5, msl, mp, scp], [nm5, msl, mp, scp]]
+    df = pd.DataFrame(data, columns=['NMETS_5_UTR', 'MUTATED_SEQUENCE_LENGTH', 'MET_POSITION', 'STOP_CODON_POSITION'])
 
-    # Tengo que crear un DF de al menos dos filas para poder usar CT
-    data = [[lmiu, psc, rfs, msl, mp, scp], [lmiu, psc, rfs, msl, mp, scp]]
-    df = pd.DataFrame(data, columns=['LOST_METS_IN_5_UTR', 'PREMATURE_STOP_CODON', 'READING_FRAME_STATUS',
-                                     'MUTATED_SEQUENCE_LENGTH', 'MET_POSITION', 'STOP_CODON_POSITION'])
-
-    # Aplico las transformaciones
+    # Apply the transformations
     x = ct.transform(df)[0]
 
-    # Cargo el modelo
-    clf = load(pathlib.Path(__file__).parent.absolute() / '../../data/salida/modelos/clf_VC22.joblib')
+    # Load the model
+    clf = load(pathlib.Path(__file__).parent.absolute() / '../../data/salida_paper/models/clf_VC10B.joblib')
 
-    # Realizo la predicción con las variables transformadas
+    # This is to be able to obtain the percentage of the prediction
+    clf.set_params(voting='soft')
+
+    # Perform the prediction
     predict = clf.predict_proba([x])[0]
 
     return predict
 
-
+# This is to perform the prediction by features
 @app.route('/prediccionPorCaracteristicas', methods=['GET', 'POST'])
 def prediccionPorCaracteristicas():
-    # Obtengo las variables
-    lmiu = request.args.get('lmiu', None)
-    psc = request.args.get('psc', None)
-    rfs = request.args.get('rfs', None)
+    # Obtain the variables
+    nm5 = request.args.get('nm5', None)
     msl = request.args.get('msl', None)
     mp = request.args.get('mp', None)
     scp = request.args.get('scp', None)
 
-    predict = predice(lmiu, psc, rfs, msl, mp, scp)
+    predict = predice(nm5, msl, mp, scp)
 
-    # Si la predicción para benigno es mayor a 0.5, devuelvo "BENIGNO"
+    # If the prediction for benign is greater than 0.5, we return BENIGN
     if predict[0] > 0.5:
         return "BENIGN (" + str(round(predict[0]*100, 3)) + "%)", 200 
-    # Si no, devuelvo "DELETÉREO"
+    # Otherwise, return DELETERIOUS
     return "DELETERIOUS (" + str(round(predict[1]*100, 3)) + "%)", 200
 
-
+# This is to perform the prediction by sequences
 @app.route('/prediccionPorSecuencias', methods=['POST'])
 def prediccionPorSecuencias():
-    # Obtengo las variables, que son secuencias
-
-    # Secuencia del transcrito original completa, incluyendo 5' y 3'
+    # Complete sequence of the original transcript, including 5' and 3'
     cdna = request.form.get('cdna', None)
     print(cdna)
 
-    # Secuencia codificante del transcrito original.
+    # Coding region of the original transcript
     cds = request.form.get('cds', None)
 
-    # Secuencia del transcrito mutado completa
+    # Sequence of the complete mutated trancript
     mutatedCdna = request.form.get('mutatedCdna', None)
 
-    # Obtengo las caracteristicas a partir de las secuencias.
+    # Obtaining the characterstics by using the sequence
     features = get_features_from_transcript_seqs(cdna, cds, mutatedCdna)
 
-    # Hago la prediccion con las caracteristicas
-    predict = predice(features['LOST_METS_IN_5_UTR'], features['PREMATURE_STOP_CODON'],
-                      features['READING_FRAME_STATUS'], features['MUTATED_SEQUENCE_LENGTH'],
+    # Perform the prediction
+    predict = predice(features['NSMETS_5_UTR'], features['MUTATED_SEQUENCE_LENGTH'],
                       features['MET_POSITION'], features['STOP_CODON_POSITION'])
 
-    # Si la predicción para benigno es mayor a 0.5, devuelvo "BENIGNO"
+    # If the prediction for benign is greater than 0.5, we return BENIGN
     if predict[0] > 0.5:
-        return "BENIGN (" + str(round(predict[0]*100, 3)) + "%)", 200 
-    # Si no, devuelvo "DELETÉREO"
+        return "BENIGN (" + str(round(predict[0]*100, 3)) + "%)", 200
+    # Otherwise, return DELETERIOUS
     return "DELETERIOUS (" + str(round(predict[1]*100, 3)) + "%)", 200
 
-
+# This is to perform the prediction by Ensembl ID
 @app.route('/prediccionPorSeqID', methods=['GET', 'POST'])
 def prediccionPorSeqIdYCambio():
-    # Obtengo el identificador del transcrito en ensembl
+    # Obtain the ID of the Ensembl transcript
     seqId = request.args.get('transcriptId', None)
 
-    # Obtengo el nuevo codon a poner donde estaba el codon de inicio original
+    # Obtain the new alternative initiation codon
     cambioCodon = request.args.get('cambioCodon', None)
 
-    # Obtengo las caracteristicas a partir de los datos anteriores
+    # Obtain the features from the previous data
     features = get_features_from_ensembl_id_and_codon_change(seqId, cambioCodon)
 
-    # Hago la prediccion con las caracteristicas
-    predict = predice(features['LOST_METS_IN_5_UTR'], features['PREMATURE_STOP_CODON'],
-                      features['READING_FRAME_STATUS'], features['MUTATED_SEQUENCE_LENGTH'],
+    # Perform the prediction
+    predict = predice(features['NMETS_5_UTR'], features['MUTATED_SEQUENCE_LENGTH'],
                       features['MET_POSITION'], features['STOP_CODON_POSITION'])
 
-    # Si la predicción para benigno es mayor a 0.5, devuelvo "BENIGNO"
+    # If the prediction for benign is greater than 0.5, we return BENIGN
     if predict[0] > 0.5:
-        return "BENIGN (" + str(round(predict[0]*100, 3)) + "%)", 200 
-    # Si no, devuelvo "DELETÉREO"
+        return "BENIGN (" + str(round(predict[0]*100, 3)) + "%)", 200
+    # Otherwise, return DELETERIOUS
     return "DELETERIOUS (" + str(round(predict[1]*100, 3)) + "%)", 200
 
 

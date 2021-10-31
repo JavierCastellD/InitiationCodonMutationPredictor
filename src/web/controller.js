@@ -1,27 +1,25 @@
 function realizarPrediccionPorCaracteristicas(){
-    // Obtenemos las distintas variables del formulario
-    var lmiu = document.getElementById("lostMetsInUTR").value
-    var psc = document.getElementById("prematureStopCodon").value
+    // Obtain the different variables from the form
+    var nm5 = document.getElementById("nMets5UTR").value
     var msl = document.getElementById("mutatedSequenceLength").value
-    var rfs = document.getElementById("readingFrameStatus").value
     var mp = document.getElementById("metPosition").value
     var scp = document.getElementById("stopCodonPosition").value
     
     var resultado = document.getElementById("resultadoPorCaracteristicas")
     var error = document.getElementById("errorPorCaracteristicas")
 
-    // Comprobamos si los valores son correctos
-    if (!isNaN(lmiu) && Number(lmiu) >= 0) {
+    // Check if the values are correct
+    if (!isNaN(nm5) && Number(nm5) >= 0) {
         if (!isNaN(msl) && Number(msl) >= 0) {
             if (!isNaN(mp) && Number(mp) >= 0){
                 if (!isNaN(scp) && Number(scp) >= 0){
-                    // En este caso los valores son correctos, por lo que hacemos 
-                    // una petición al endpoint para que se ejecute el script con los datos
+                    // If so, we do a petition to the endpoint so that it
+                    // executes the script with this data
                     error.style.visibility = "hidden"
                     
                     const Http = new XMLHttpRequest()
                     const url = 'http://localhost:5000/prediccionPorCaracteristicas'
-                    const variables = '?lmiu='+lmiu+'&psc='+psc+'&msl='+msl+'&rfs='+rfs+'&mp='+mp+'&scp='+scp
+                    const variables = '?nm5='+nm5+'&msl='+msl+'&mp='+mp+'&scp='+scp
 
                     Http.open("GET", url+variables)
                     Http.send()
@@ -29,33 +27,31 @@ function realizarPrediccionPorCaracteristicas(){
                     Http.onreadystatechange = (e) => {
                         if (Http.readyState == 4 && Http.status == 200){
                             resultado.textContent = "The mutation is " + Http.responseText
-                            // "La mutación es DELETEREA"
-                            // "La mutación es BENIGNA"
                         }
                     }
                 } else {
-                    // En este caso, hay un problema con el valor de SCP
+                    // There is a problem with Stop Codon Positions
                     error.style.visibility = "visible"
-                    error.textContent = "Stop Codon Position tiene que ser mayor que 0."
+                    error.textContent = "Stop Codon Position has to be an integer greater than 0."
                 }
                 
             } else {
-                // En este caso, hay un problema con el valor de MP
+                // There is a problem with Met Position
                 error.style.visibility = "visible"
-                error.textContent = "Met Position tiene que ser mayor que 0."
+                error.textContent = "Met Position has to be an integer greater than 0."
                 
             }
             
         } else {
-            // En este caso, hay un problema con el valor de MSL
+            // There is a problem with Mutated Sequence Length
             error.style.visibility = "visible"
-            error.textContent = "Mutated Sequence Length tiene que ser mayor que 0."
+            error.textContent = "Mutated Sequence Length has to be greater or equal than 0."
         }
 
     } else {
-        // En este caso, hay un problema con el valor de LMIU
+        // There is a problem with NMETS_5_UTR
         error.style.visibility = "visible"
-        error.textContent = "Lost Mets in UTR tiene que ser un entero mayor o igual a 0."
+        error.textContent = "Number of Mets in 5' UTR has to be an integer equal or greater than 0."
     }
 
 }

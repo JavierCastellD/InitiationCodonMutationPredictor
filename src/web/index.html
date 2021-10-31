@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Predictor Mutaciones Codón Inicio</title>
+        <title>Predictor of Mutations in the Initiation Codon</title>
         <meta charset="utf-8">
         <script src="./controller.js"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
@@ -22,34 +22,12 @@
                     <form method="POST">
                         <h1>Input your data</h1>
                         <p>
-                            <label for="prematureStopCodon">
+                            <label for="nMets5UTR">
                                 <span>
-                                    Premature Stop Codon
+                                    Number of Mets in 5' UTR
                                 </span>
                             </label>
-                            <select id="prematureStopCodon">
-                                <option value="YES">YES</option>
-                                <option value="NO">NO</option>
-                            </select>
-                        </p>
-                        <p>
-                            <label for="readingFrameStatus">
-                                <span>
-                                    Reading Frame Status
-                                </span>
-                            </label>
-                            <select id="readingFrameStatus">
-                                <option value="Lost">Lost</option>
-                                <option value="Maintained">Maintained</option>
-                            </select>
-                        </p>
-                        <p>
-                            <label for="lostMetsInUTR">
-                                <span>
-                                    Lost Mets in UTR
-                                </span>
-                            </label>
-                            <input type="number" id="lostMetsInUTR" min="0">
+                            <input type="number" id="nMets5UTR" min="0">
                         </p>
                         <p>
                             <label for="mutatedSequenceLength">
