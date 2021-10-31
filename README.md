@@ -1,6 +1,5 @@
 # A prediction method for the effect of mutations in the initiation codon
 Project for the creation of a method of predicting mutations in the initiation codon by using machine learning algorithms.
-The dataset obtained from Ensembl that was used in this project can be found in the following link: [WIP]
 
 ## Dependencies
 The following libraries are needed to execute the scripts:
