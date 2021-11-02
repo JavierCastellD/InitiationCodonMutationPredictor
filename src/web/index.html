@@ -8,17 +8,53 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
     </head>
+    <style>
+        .footer {
+          position: fixed;
+          left: 0;
+          bottom: 0;
+          width: 100%;
+          background-color: #f5f5f5;
+          color: black;
+        }
+
+        .container .text-muted {
+            margin: 20px 0;
+        }
+
+        .footer > .container {
+          padding-right: 15px;
+          padding-left: 15px;
+        }
+    </style>
 
     <body>
         <div class="container">
             <ul class="nav nav-tabs">
-                <li class="active"><a data-toggle="tab" href="#formCaracteristicas">Features</a></li>
+                <li class="active"><a data-toggle="tab" href="#generalInformation">General Information</a></li>
+                <li><a data-toggle="tab" href="#formCaracteristicas">Features</a></li>
                 <li><a data-toggle="tab" href="#formSecuencias">Sequences</a></li>
                 <li><a data-toggle="tab" href="#formEnsembl">Ensembl Transcript</a></li>
             </ul>
 
             <div class="tab-content">
-                <div id="formCaracteristicas" class="tab-pane fade in active">
+                <div id="generalInformation" class="tab-pane fade in active">
+                    <h1>General Information</h1>
+                    <div>
+                        Welcome to this tool which allows to perform the prediction of mutations in the initiation codon. After introducing the input, a message will appear on screen indicating whether the mutation is BENIGN or DELETERIOUS and a percentage showing how sure it is of said prediction.
+                        More information about this predictor and how it was developed can be found in: <a href="https://github.com/JavierCastellD/InitiationCodonMutationPredictor">https://github.com/JavierCastellD/InitiationCodonMutationPredictor</a>.
+                    </div>
+                    <h2>Input options</h2>
+                    <div>
+                        There are three possible input options:
+                        <ul>
+                          <li><b>Features</b>: introduce the value of each of the features of the predictor: number of ATG in the 5' UTR, length percentage of the mutated amino acid, distance to the stop codon, and distance to the alternative intiiation codon.</li>
+                          <li><b>Sequences</b>: introduce the complementary DNA sequence, the coding region sequence, and the mutated complementary DNA sequence.</li>
+                          <li><b>Ensembl Transcript</b>: introduce the Ensembl transcript ID and the codon change.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div id="formCaracteristicas" class="tab-pane fade">
                     <form method="POST">
                         <h1>Input your data</h1>
                         <p>
@@ -78,7 +114,7 @@
                                 <span>CDNA sequence</span>
                             </label>
                             <br>
-                            <textarea id="cdna" cols="50" rows="20"></textarea>
+                            <textarea id="cdna" cols="50" rows="10"></textarea>
 
                         </p>
                         <p>
@@ -86,7 +122,7 @@
                                 <span>CDS sequence</span>
                             </label>
                             <br>
-                            <textarea id="cds" cols="50" rows="20"></textarea>
+                            <textarea id="cds" cols="50" rows="10"></textarea>
 
                         </p>
                         <p>
@@ -94,7 +130,7 @@
                                 <span>Mutated CDNA sequence</span>
                             </label>
                             <br>
-                            <textarea id="mutatedCdna" cols="50" rows="20"></textarea>
+                            <textarea id="mutatedCdna" cols="50" rows="10"></textarea>
 
                         </p>
                         <p>
@@ -150,6 +186,12 @@
                 </div>
             </div>
         </div>
+
+        <footer class="footer">
+            <div class="container">
+                <p class="text-muted">@2021 - Universidad de Murcia</p>
+            </div>
+        </footer>
 
     </body>
 </html>
