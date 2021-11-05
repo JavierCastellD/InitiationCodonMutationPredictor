@@ -1,7 +1,7 @@
 # A prediction method for the effect of mutations in the initiation codon
 Project for the creation of a method of predicting mutations in the initiation codon by using machine learning algorithms.
 
-The predictor can be used in the following link: [WIP]
+The predictor can be used here: http://sele.inf.um.es/initiationMutationPredictor/
 
 ## Dependencies
 The following libraries are needed to execute the scripts:
