@@ -1,0 +1,2 @@
+Parameter,Accuracy,Specifity,F1_del,F1_ben,MCC,AP,Recall,ROC_AUC,Precision,Kappa
+,0.982,0.996,0.991,0.236,0.251,0.083,0.171,0.583,0.399,0.228
