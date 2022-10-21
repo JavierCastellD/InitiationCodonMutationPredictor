@@ -1,6 +1,8 @@
 function realizarPrediccionPorCaracteristicas(){
     // Obtain the different variables from the form
-    var nm5 = document.getElementById("nMets5UTR").value
+    var psc = document.getElementById("prematureStopCodon").value
+    var rfs = document.getElementById("readingFrameStatus").value
+    var lm5 = document.getElementById("nLostMets5UTR").value
     var msl = document.getElementById("mutatedSequenceLength").value
     var mp = document.getElementById("metPosition").value
     var scp = document.getElementById("stopCodonPosition").value
@@ -9,7 +11,7 @@ function realizarPrediccionPorCaracteristicas(){
     var error = document.getElementById("errorPorCaracteristicas")
 
     // Check if the values are correct
-    if (!isNaN(nm5) && Number(nm5) >= 0) {
+    if (!isNaN(lm5) && Number(lm5) >= 0) {
         if (!isNaN(msl) && Number(msl) >= 0) {
             if (!isNaN(mp) && Number(mp) >= 0){
                 if (!isNaN(scp) && Number(scp) >= 0){
@@ -18,8 +20,9 @@ function realizarPrediccionPorCaracteristicas(){
                     error.style.visibility = "hidden"
                     
                     const Http = new XMLHttpRequest()
-                    const url = 'http://localhost:5000/prediccionPorCaracteristicas'
-                    const variables = '?nm5='+nm5+'&msl='+msl+'&mp='+mp+'&scp='+scp
+                    // TODO: Cambiar localhost por la IP que diga
+                    const url = 'http://semantics.inf.um.es:5000/prediccionPorCaracteristicas'
+                    const variables = '?lm5='+lm5+'&msl='+msl+'&mp='+mp+'&scp='+scp+'&psc='+psc+'&rfs='+rfs
 
                     Http.open("GET", url+variables)
                     Http.send()
@@ -66,7 +69,7 @@ function realizarPrediccionPorSecuencias(){
     var error = document.getElementById("errorPorSecuencias")
 
     const xhttp = new XMLHttpRequest()
-    const url = 'http://localhost:5000/prediccionPorSecuencias'
+    const url = 'http://semantics.inf.um.es:5000/prediccionPorSecuencias'
     const variables = 'cdna='+cdna+'&cds='+cds+'&mutatedCdna='+mutatedCdna
 
     xhttp.open("POST", url)
@@ -89,7 +92,7 @@ function realizarPrediccionPorEnsemblID(){
     var resultado = document.getElementById("resultadoPorEnsemblID")
 
     const Http = new XMLHttpRequest()
-    const url = 'http://localhost:5000/prediccionPorSeqID'
+    const url = 'http://semantics.inf.um.es:5000/prediccionPorSeqID'
     const variables = '?transcriptId='+transcriptID+'&cambioCodon='+cambioCodon
 
     Http.open("GET", url+variables)

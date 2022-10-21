@@ -48,7 +48,7 @@
                     <div>
                         There are three possible input options:
                         <ul>
-                          <li><b>Features</b>: introduce the value of each of the features of the predictor: number of ATG in the 5' UTR, length percentage of the mutated amino acid, distance to the stop codon, and distance to the alternative intiiation codon.</li>
+                          <li><b>Features</b>: introduce the value of each of the features of the predictor: if there is a premature stop codon, status of the reading frame, length percentage of the mutated amino acid, number of ATG in the 5' UTR which are not in phase with the original codon, distance to the alternative initiation codon, and distance to the stop codon.</li>
                           <li><b>Sequences</b>: introduce the complementary DNA sequence, the coding region sequence, and the mutated complementary DNA sequence.</li>
                           <li><b>Ensembl Transcript</b>: introduce the Ensembl transcript ID and the codon change.</li>
                         </ul>
@@ -58,12 +58,26 @@
                     <form method="POST">
                         <h1>Input your data</h1>
                         <p>
-                            <label for="nMets5UTR">
+                            <label for="prematureStopCodon">
                                 <span>
-                                    Number of Mets in 5' UTR
+                                    Premature Stop Codon
                                 </span>
                             </label>
-                            <input type="number" id="nMets5UTR" min="0">
+                            <select id="prematureStopCodon">
+                                <option value="YES">Yes</option>
+                                <option value="NO">No</option>
+                            </select>
+                        </p>
+                        <p>
+                            <label for="readingFrameStatus">
+                                <span>
+                                    Reading Frame Status
+                                </span>
+                            </label>
+                            <select id="readingFrameStatus">
+                                <option value="Lost">Lost</option>
+                                <option value="Maintained">Kept</option>
+                            </select>
                         </p>
                         <p>
                             <label for="mutatedSequenceLength">
@@ -72,6 +86,14 @@
                                 </span>
                             </label>
                             <input type="number" id="mutatedSequenceLength" min="0" step="any">
+                        </p>
+                        <p>
+                            <label for="nLostMets5UTR">
+                                <span>
+                                    Number of Lost Mets in 5' UTR
+                                </span>
+                            </label>
+                            <input type="number" id="nLostMets5UTR" min="0">
                         </p>
                         <p>
                             <label for="metPosition">
@@ -189,7 +211,7 @@
 
         <footer class="footer">
             <div class="container">
-                <p class="text-muted">@2021 - Universidad de Murcia</p>
+                <p class="text-muted">@2022 - Universidad de Murcia</p>
             </div>
         </footer>
 
